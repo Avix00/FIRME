@@ -4,7 +4,7 @@
 
 // === CONFIGURAZIONE ===
 // IMPORTANTE: Sostituisci questo URL con l'URL del tuo Google Apps Script Web App
-const API_URL = 'https://script.google.com/macros/s/AKfycbyaWGWy1VGZdWxLqLQgdWFDT-2lS8UEBzDgsuZcfLI9ZfVLU4dEBNWU-aNq0l0HhVjoJA/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbySJa9OqlaU-AhZB6AtJ0OCTK0mAlN9YO-LzwUeUzgmqmlXKsyt3JmZQp2evb_bblpEBQ/exec';
 
 // Password admin (hardcodata per semplicità)
 const ADMIN_PASSWORD = 'arten2026';
@@ -414,3 +414,4 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
