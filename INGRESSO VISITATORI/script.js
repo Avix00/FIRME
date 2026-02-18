@@ -4,7 +4,7 @@
 
 // === CONFIGURAZIONE ===
 // IMPORTANTE: Sostituisci questo URL con l'URL del tuo Google Apps Script Web App
-const API_URL = 'https://script.google.com/macros/s/AKfycbwG-JND6KOa21tVrcPO7XfM2XQNoy23XWd0JYbOkQb7c6PiZaCrxBGnGzSDyKeEywR55w/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyaWGWy1VGZdWxLqLQgdWFDT-2lS8UEBzDgsuZcfLI9ZfVLU4dEBNWU-aNq0l0HhVjoJA/exec';
 
 // Password admin (hardcodata per semplicità)
 const ADMIN_PASSWORD = 'arten2026';
@@ -48,6 +48,16 @@ function updateDateTime() {
 
 setInterval(updateDateTime, 30000);
 updateDateTime();
+
+// ============================================================
+// API HELPER - usa GET per evitare problemi CORS con Google Apps Script
+// ============================================================
+async function apiGet(params) {
+  const url = new URL(API_URL);
+  Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+  const response = await fetch(url.toString());
+  return response.json();
+}
 
 // ============================================================
 // SIGNATURE PAD
@@ -132,7 +142,7 @@ async function submitCheckIn() {
   if (!ditta) { showError('Inserisci la ditta di provenienza.'); return; }
   if (!persona) { showError('Inserisci la persona da visitare.'); return; }
   if (!zona) { showError('Inserisci la zona di accesso.'); return; }
-  if (!oraEntrata) { showError('Inserisci l\'ora di ingresso.'); return; }
+  if (!oraEntrata) { showError("Inserisci l'ora di ingresso."); return; }
   if (!firma) { showError('La firma è obbligatoria.'); return; }
 
   const btn = document.getElementById('btn-submit-checkin');
@@ -140,21 +150,16 @@ async function submitCheckIn() {
   btn.textContent = '⏳ Registrazione in corso...';
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'checkIn',
-        nominativo,
-        ditta,
-        personaDaVisitare: persona,
-        zonaAccesso: zona,
-        oraEntrata,  // Ora manuale
-        firma
-      })
+    // Usiamo GET per evitare CORS
+    const result = await apiGet({
+      action: 'checkIn',
+      nominativo,
+      ditta,
+      personaDaVisitare: persona,
+      zonaAccesso: zona,
+      oraEntrata,
+      firma
     });
-
-    const result = await response.json();
 
     if (result.success) {
       showSuccess('Ingresso Registrato', 'Benvenuto ' + nominativo + '!\nIngresso registrato alle ' + oraEntrata + '.');
@@ -194,8 +199,7 @@ async function loadCheckout() {
   loadingEl.style.display = 'flex';
 
   try {
-    const response = await fetch(API_URL + '?action=getVisitors');
-    const result = await response.json();
+    const result = await apiGet({ action: 'getVisitors' });
 
     loadingEl.style.display = 'none';
 
@@ -228,7 +232,6 @@ function confirmCheckOut(visitor) {
   pendingCheckOut = visitor;
   document.getElementById('confirm-title').textContent = 'Registra Uscita';
   document.getElementById('confirm-message').textContent = visitor.nominativo + ' (' + visitor.ditta + ')';
-  // Pre-fill ora uscita con ora attuale
   document.getElementById('oraUscita').value = getCurrentTimeHHMM();
   document.getElementById('overlay-confirm').style.display = 'flex';
 }
@@ -242,7 +245,7 @@ async function okConfirm() {
   if (!pendingCheckOut) return;
 
   const oraUscita = document.getElementById('oraUscita').value;
-  if (!oraUscita) { showError('Inserisci l\'ora di uscita.'); return; }
+  if (!oraUscita) { showError("Inserisci l'ora di uscita."); return; }
 
   document.getElementById('overlay-confirm').style.display = 'none';
 
@@ -250,17 +253,11 @@ async function okConfirm() {
   pendingCheckOut = null;
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'checkOut',
-        rowIndex: visitor.rowIndex,
-        oraUscita  // Ora manuale
-      })
+    const result = await apiGet({
+      action: 'checkOut',
+      rowIndex: visitor.rowIndex,
+      oraUscita
     });
-
-    const result = await response.json();
 
     if (result.success) {
       showSuccess('Uscita Registrata', result.message);
@@ -324,8 +321,7 @@ async function loadAdminData() {
   tableEl.style.display = 'none';
 
   try {
-    const response = await fetch(API_URL + '?action=getHistory&date=' + encodeURIComponent(dateStr));
-    const result = await response.json();
+    const result = await apiGet({ action: 'getHistory', date: dateStr });
 
     loadingEl.style.display = 'none';
 
@@ -363,8 +359,7 @@ async function loadAdminData() {
 
 async function downloadExcel() {
   try {
-    const response = await fetch(API_URL + '?action=exportExcel');
-    const result = await response.json();
+    const result = await apiGet({ action: 'exportExcel' });
     if (result.success && result.url) {
       window.open(result.url, '_blank');
     } else {
