@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ArTen - Registro Visitatori</title>
+  <meta name="description" content="Sistema digitale per la registrazione degli ingressi visitatori - ArTen">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ===================== HOME SCREEN ===================== -->
+  <div id="screen-home" class="screen active">
+    <div class="home-container">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <rect width="56" height="56" rx="14" fill="#16A34A" />
+            <path d="M18 38V20h4l6 10 6-10h4v18h-4V27l-6 10-6-10v11h-4z" fill="#fff" />
+          </svg>
+        </div>
+        <h1 class="company-name">ArTen</h1>
+        <p class="subtitle">Registro Visitatori</p>
+      </div>
+      <div class="home-actions">
+        <button class="btn btn-primary btn-xl" onclick="showScreen('screen-checkin')">
+          <span class="btn-icon">➡️</span>
+          NUOVO INGRESSO
+        </button>
+        <button class="btn btn-secondary btn-xl" onclick="loadCheckout()">
+          <span class="btn-icon">⬅️</span>
+          REGISTRA USCITA
+        </button>
+      </div>
+      <button class="btn-admin-link" onclick="showScreen('screen-admin-login')">
+        ⚙️ Area Admin
+      </button>
+      <div class="home-datetime" id="home-datetime"></div>
+    </div>
+  </div>
+
+  <!-- ===================== CHECK-IN SCREEN ===================== -->
+  <div id="screen-checkin" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
+      <h2>Nuovo Ingresso</h2>
+      <div class="spacer"></div>
+    </div>
+    <div class="form-container">
+      <form id="checkin-form" onsubmit="return false;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nominativo">Nominativo *</label>
+            <input type="text" id="nominativo" placeholder="Nome e Cognome" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ditta">Ditta di provenienza *</label>
+            <input type="text" id="ditta" placeholder="Nome azienda" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="persona">Persona da visitare *</label>
+            <input type="text" id="persona" placeholder="Persona interna" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="zona">Zona di accesso *</label>
+            <input type="text" id="zona" placeholder="Zona / reparto" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="oraEntrata">Ora Ingresso *</label>
+            <input type="time" id="oraEntrata" required>
+          </div>
+        </div>
+
+        <div class="signature-section">
+          <label>Firma *</label>
+          <div class="signature-wrapper">
+            <canvas id="signature-canvas"></canvas>
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearSignature()">Cancella Firma</button>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary btn-lg" id="btn-submit-checkin" onclick="submitCheckIn()">
+            ✅ REGISTRA INGRESSO
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== CHECK-OUT SCREEN ===================== -->
+  <div id="screen-checkout" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
+      <h2>Registra Uscita</h2>
+      <div class="spacer"></div>
+    </div>
+    <div class="checkout-container">
+      <p class="checkout-instructions">Seleziona il tuo nome per registrare l'uscita:</p>
+      <div id="visitors-list" class="visitors-list">
+        <!-- Populated dynamically -->
+      </div>
+      <div id="checkout-empty" class="empty-state" style="display:none;">
+        <span class="empty-icon">📋</span>
+        <p>Nessun visitatore registrato oggi.</p>
+      </div>
+      <div id="checkout-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Caricamento...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ADMIN LOGIN SCREEN ===================== -->
+  <div id="screen-admin-login" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
+      <h2>Area Admin</h2>
+      <div class="spacer"></div>
+    </div>
+    <div class="admin-login-container">
+      <div class="login-box">
+        <span class="login-icon">🔒</span>
+        <h3>Accesso riservato</h3>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" placeholder="Inserisci la password" autocomplete="off">
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="adminLogin()">ACCEDI</button>
+        <p id="login-error" class="error-text" style="display:none;">Password errata.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ADMIN DASHBOARD SCREEN ===================== -->
+  <div id="screen-admin" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="adminLogout()">← Esci</button>
+      <h2>Dashboard Admin</h2>
+      <div class="spacer"></div>
+    </div>
+    <div class="admin-container">
+      <div class="admin-toolbar">
+        <div class="admin-date-picker">
+          <label for="admin-date">Data:</label>
+          <input type="date" id="admin-date" onchange="loadAdminData()">
+          <button class="btn btn-outline btn-sm" onclick="setAdminDateToday()">Oggi</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="downloadExcel()">📥 Scarica Excel</button>
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table" id="admin-table">
+          <thead>
+            <tr>
+              <th>Ora Entrata</th>
+              <th>Ora Uscita</th>
+              <th>Nominativo</th>
+              <th>Ditta</th>
+              <th>Persona Visitata</th>
+              <th>Zona</th>
+              <th>Firma</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body">
+          </tbody>
+        </table>
+        <div id="admin-empty" class="empty-state" style="display:none;">
+          <span class="empty-icon">📋</span>
+          <p>Nessun ingresso registrato per questa data.</p>
+        </div>
+        <div id="admin-loading" class="loading-state" style="display:none;">
+          <div class="spinner"></div>
+          <p>Caricamento...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== FEEDBACK OVERLAY ===================== -->
+  <div id="overlay-success" class="overlay" style="display:none;">
+    <div class="overlay-content success">
+      <span class="overlay-icon">✅</span>
+      <h2 id="overlay-title">Operazione completata</h2>
+      <p id="overlay-message"></p>
+      <button class="btn btn-primary btn-lg" onclick="closeOverlay()">OK</button>
+    </div>
+  </div>
+
+  <div id="overlay-error" class="overlay" style="display:none;">
+    <div class="overlay-content error">
+      <span class="overlay-icon">❌</span>
+      <h2>Errore</h2>
+      <p id="overlay-error-message"></p>
+      <button class="btn btn-primary btn-lg" onclick="closeErrorOverlay()">OK</button>
+    </div>
+  </div>
+
+  <!-- ===================== CHECKOUT DIALOG ===================== -->
+  <div id="overlay-confirm" class="overlay" style="display:none;">
+    <div class="overlay-content confirm">
+      <span class="overlay-icon">⬅️</span>
+      <h2 id="confirm-title">Registra Uscita</h2>
+      <p id="confirm-message"></p>
+      <div class="form-group" style="width:100%; margin-top:8px;">
+        <label for="oraUscita"
+          style="font-size:0.85rem;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:1px;">Ora Uscita
+          *</label>
+        <input type="time" id="oraUscita"
+          style="width:100%;padding:16px 18px;background:#1A1A1A;border:2px solid #2A2A2A;border-radius:12px;color:#F0F0F0;font-family:Inter,sans-serif;font-size:1.1rem;">
+      </div>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary btn-lg" onclick="cancelConfirm()">ANNULLA</button>
+        <button class="btn btn-primary btn-lg" id="btn-confirm-ok" onclick="okConfirm()">CONFERMA USCITA</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
