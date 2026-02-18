@@ -50,13 +50,41 @@ setInterval(updateDateTime, 30000);
 updateDateTime();
 
 // ============================================================
-// API HELPER - usa GET per evitare problemi CORS con Google Apps Script
+// API HELPERS
 // ============================================================
 async function apiGet(params) {
   const url = new URL(API_URL);
   Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-  const response = await fetch(url.toString());
-  return response.json();
+
+  try {
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error('Network response was not ok');
+    return response.json();
+  } catch (e) {
+    throw new Error("Errore comunicazione GET: " + e.message);
+  }
+}
+
+// Invia dati come FORM URLENCODED (più robusto di JSON per Google Apps Script)
+async function apiPostSignatureEnc(data) {
+  // Convertiamo l'oggetto data in stringa urlencoded
+  const formData = new URLSearchParams();
+  Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+  try {
+    await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Bypass CORS (risposta opaca)
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    });
+    return { success: true };
+  } catch (err) {
+    // In no-cors, gli errori di rete reali vengono lanciati qui
+    throw new Error("Errore invio firma: " + err.message);
+  }
 }
 
 // ============================================================
@@ -128,7 +156,7 @@ function getSignatureData() {
 }
 
 // ============================================================
-// CHECK-IN
+// CHECK-IN (2 STEP - FETCH NO-CORS FORM-DATA)
 // ============================================================
 async function submitCheckIn() {
   const nominativo = document.getElementById('nominativo').value.trim();
@@ -147,28 +175,48 @@ async function submitCheckIn() {
 
   const btn = document.getElementById('btn-submit-checkin');
   btn.disabled = true;
-  btn.textContent = '⏳ Registrazione in corso...';
+  btn.textContent = '⏳ Registrazione... (1/2)';
 
   try {
-    // Usiamo GET per evitare CORS
+    console.log("Inizio Step 1: GET Dati");
+    // STEP 1: Invia dati testuali via GET
     const result = await apiGet({
       action: 'checkIn',
       nominativo,
       ditta,
       personaDaVisitare: persona,
       zonaAccesso: zona,
-      oraEntrata,
-      firma
+      oraEntrata
     });
 
+    console.log("Step 1 completato:", result);
+
     if (result.success) {
-      showSuccess('Ingresso Registrato', 'Benvenuto ' + nominativo + '!\nIngresso registrato alle ' + oraEntrata + '.');
+      btn.textContent = '⏳ Caricamento firma... (2/2)';
+
+      console.log("Inizio Step 2: POST Firma (no-cors)");
+      // STEP 2: Invia firma via POST FETCH FORM-DATA NO-CORS
+      await apiPostSignatureEnc({
+        action: 'uploadSignature',
+        rowIndex: result.rowIndex,
+        firma: firma,
+        nominativo: nominativo,
+        dateStr: result.dateStr,
+        timeStr: result.timeStr
+      });
+
+      console.log("Step 2 inviato (assunto successo)");
+
+      showSuccess('Ingresso Registrato', 'Benvenuto ' + nominativo + '!\nIngresso registrato alle ' + result.timeStr + '.');
       resetCheckInForm();
+
     } else {
-      showError(result.message || result.error || 'Errore durante la registrazione.');
+      showError(result.message || result.error || 'Errore durante la registrazione (Step 1).');
     }
+
   } catch (err) {
-    showError('Errore di connessione. Verifica la connessione WiFi e riprova.\n\n' + err.message);
+    console.error("Errore JS:", err);
+    showError('Errore di comunicazione: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = '✅ REGISTRA INGRESSO';
@@ -222,7 +270,7 @@ async function loadCheckout() {
     }
   } catch (err) {
     loadingEl.style.display = 'none';
-    showError('Errore di connessione. Verifica la connessione WiFi.\n\n' + err.message);
+    showError('Errore lista visitatori: ' + err.message);
   }
 }
 
@@ -265,7 +313,7 @@ async function okConfirm() {
       showError(result.message || 'Errore durante la registrazione uscita.');
     }
   } catch (err) {
-    showError('Errore di connessione.\n\n' + err.message);
+    showError('Errore uscita: ' + err.message);
   }
 }
 
@@ -353,7 +401,7 @@ async function loadAdminData() {
     }
   } catch (err) {
     loadingEl.style.display = 'none';
-    showError('Errore di connessione.\n\n' + err.message);
+    showError('Errore storico: ' + err.message);
   }
 }
 
@@ -366,7 +414,7 @@ async function downloadExcel() {
       showError('Errore: impossibile generare il link Excel.');
     }
   } catch (err) {
-    showError('Errore di connessione.\n\n' + err.message);
+    showError('Errore download: ' + err.message);
   }
 }
 
@@ -414,6 +462,3 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
-
-
-
