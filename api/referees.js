@@ -1,14 +1,22 @@
-const { supabase } = require('./lib/supabase');
+const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
+
+// === SUPABASE ===
+const supabase = (() => {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+    if (!url || !key) { console.error('Missing SUPABASE env vars'); return null; }
+    return createClient(url, key);
+})();
 
 module.exports = async function handler(req, res) {
-    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
     if (!supabase) {
-        return res.status(500).json({ success: false, message: 'Database non configurato. Controlla le variabili SUPABASE_URL e SUPABASE_KEY su Vercel.' });
+        return res.status(500).json({ success: false, message: 'Configurazione database mancante. Controlla le env vars SUPABASE_URL e SUPABASE_KEY su Vercel.' });
     }
 
     try {
