@@ -1,5 +1,5 @@
-const { supabase } = require('./_lib/supabase');
-const { sendEntryEmail } = require('./_lib/email');
+const { supabase } = require('./lib/supabase');
+const { sendEntryEmail } = require('./lib/email');
 
 module.exports = async function handler(req, res) {
     // CORS
