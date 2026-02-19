@@ -1,5 +1,5 @@
-const { supabase } = require('./_lib/supabase');
-const { sendEntryEmail, sendExitEmail } = require('./_lib/email');
+const { supabase } = require('./lib/supabase');
+const { sendEntryEmail, sendExitEmail } = require('./lib/email');
 
 function generateCode() {
     const num = Math.floor(1000 + Math.random() * 9000);
