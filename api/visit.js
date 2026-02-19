@@ -1,168 +1,169 @@
-const { supabase } = require('./lib/supabase');
-const { sendEntryEmail, sendExitEmail } = require('./lib/email');
+const { createClient } = require('@supabase/supabase-js');
+const nodemailer = require('nodemailer');
 
+// === SUPABASE ===
+const supabase = (() => {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_KEY;
+    if (!url || !key) { console.error('Missing SUPABASE env vars'); return null; }
+    return createClient(url, key);
+})();
+
+// === EMAIL ===
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtps.aruba.it',
+    port: parseInt(process.env.SMTP_PORT || '465'),
+    secure: true,
+    auth: {
+        user: process.env.SMTP_USER || 'service@arten.it',
+        pass: process.env.SMTP_PASS
+    }
+});
+
+async function sendEntryEmail(to, nome, codice, oraEntrata) {
+    const timeStr = new Date(oraEntrata).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+    const dateStr = new Date(oraEntrata).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
+    await transporter.sendMail({
+        from: '"ArTen Registro Visitatori" <service@arten.it>',
+        to,
+        subject: `Conferma Ingresso - ${codice}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+          <div style="background:#111;color:#fff;padding:24px;border-radius:12px;text-align:center;">
+            <h1 style="color:#16A34A;margin:0 0 8px;">ArTen</h1>
+            <p style="margin:0;color:#888;">Registro Visitatori</p>
+          </div>
+          <div style="padding:24px 0;">
+            <p>Gentile <strong>${nome}</strong>,</p>
+            <p>Il suo ingresso è stato registrato con successo.</p>
+            <div style="background:#f0fdf4;border:2px solid #16A34A;border-radius:12px;padding:20px;text-align:center;margin:16px 0;">
+              <p style="margin:0 0 4px;color:#666;font-size:12px;">IL SUO CODICE ACCESSO</p>
+              <p style="margin:0;font-size:32px;font-weight:bold;color:#16A34A;letter-spacing:4px;">${codice}</p>
+            </div>
+            <p><strong>Data:</strong> ${dateStr}<br><strong>Ora:</strong> ${timeStr}</p>
+            <p style="color:#666;font-size:13px;">Conservi questo codice per accessi futuri.</p>
+          </div>
+          <div style="border-top:1px solid #eee;padding-top:16px;color:#999;font-size:11px;text-align:center;">ArTen S.r.l. — Registro Visitatori Digitale</div>
+        </div>`
+    });
+}
+
+async function sendExitEmail(to, nome, codice, oraUscita) {
+    const timeStr = new Date(oraUscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+    const dateStr = new Date(oraUscita).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
+    await transporter.sendMail({
+        from: '"ArTen Registro Visitatori" <service@arten.it>',
+        to,
+        subject: `Conferma Uscita - ${codice}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+          <div style="background:#111;color:#fff;padding:24px;border-radius:12px;text-align:center;">
+            <h1 style="color:#16A34A;margin:0 0 8px;">ArTen</h1>
+            <p style="margin:0;color:#888;">Registro Visitatori</p>
+          </div>
+          <div style="padding:24px 0;">
+            <p>Gentile <strong>${nome}</strong>,</p>
+            <p>La sua uscita è stata registrata con successo.</p>
+            <p><strong>Data:</strong> ${dateStr}<br><strong>Ora uscita:</strong> ${timeStr}</p>
+            <p>Grazie per la visita. A presto!</p>
+          </div>
+          <div style="border-top:1px solid #eee;padding-top:16px;color:#999;font-size:11px;text-align:center;">ArTen S.r.l. — Registro Visitatori Digitale</div>
+        </div>`
+    });
+}
+
+// === CODE GENERATOR ===
 function generateCode() {
     const num = Math.floor(1000 + Math.random() * 9000);
     return 'ARTEN-' + num;
 }
 
 module.exports = async function handler(req, res) {
-    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    if (!supabase) {
+        return res.status(500).json({ success: false, message: 'Configurazione database mancante. Controlla le env vars SUPABASE_URL e SUPABASE_KEY su Vercel.' });
+    }
+
     try {
-        // ============================
-        // POST: CHECK-IN (new visit)
-        // ============================
+        // POST: CHECK-IN
         if (req.method === 'POST') {
             const { nome, ditta, email, referente, zona, firma, privacy_accettata } = req.body;
-
             if (!nome || !ditta || !email) {
                 return res.status(400).json({ success: false, message: 'Nome, Ditta e Email sono obbligatori' });
             }
 
-            // Generate unique code (retry if collision)
             let codice;
             let tries = 0;
             while (tries < 10) {
                 codice = generateCode();
-                const { data: existing } = await supabase
-                    .from('visitors')
-                    .select('id')
-                    .eq('codice_univoco', codice)
-                    .maybeSingle();
+                const { data: existing } = await supabase.from('visitors').select('id').eq('codice_univoco', codice).maybeSingle();
                 if (!existing) break;
                 tries++;
             }
 
-            // Upload signature to Supabase Storage
             let firma_url = null;
             if (firma) {
                 try {
                     const base64Data = firma.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
                     const buffer = Buffer.from(base64Data, 'base64');
                     const fileName = `firma_${codice}_${Date.now()}.png`;
-
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('signatures')
-                        .upload(fileName, buffer, {
-                            contentType: 'image/png',
-                            upsert: false
-                        });
-
-                    if (uploadError) {
-                        console.error('Upload error:', uploadError);
-                    } else {
-                        const { data: urlData } = supabase.storage
-                            .from('signatures')
-                            .getPublicUrl(fileName);
+                    const { data: uploadData, error: uploadError } = await supabase.storage.from('signatures').upload(fileName, buffer, { contentType: 'image/png', upsert: false });
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
                         firma_url = urlData.publicUrl;
                     }
-                } catch (uploadErr) {
-                    console.error('Signature upload failed:', uploadErr);
-                }
+                } catch (e) { console.error('Signature upload failed:', e); }
             }
 
             const now = new Date().toISOString();
-
-            // Insert visitor record
-            const { data, error } = await supabase
-                .from('visitors')
-                .insert({
-                    nome,
-                    ditta,
-                    email,
-                    referente: referente || null,
-                    zona: zona || null,
-                    codice_univoco: codice,
-                    ora_entrata: now,
-                    firma_url,
-                    privacy_accettata: privacy_accettata || false
-                })
-                .select()
-                .single();
+            const { data, error } = await supabase.from('visitors').insert({
+                nome, ditta, email,
+                referente: referente || null,
+                zona: zona || null,
+                codice_univoco: codice,
+                ora_entrata: now,
+                firma_url,
+                privacy_accettata: privacy_accettata || false
+            }).select().single();
 
             if (error) throw error;
 
-            // Send entry email (non-blocking)
-            try {
-                await sendEntryEmail(email, nome, codice, now);
-            } catch (emailErr) {
-                console.error('Email send failed:', emailErr);
-                // Don't fail the request if email fails
-            }
+            try { await sendEntryEmail(email, nome, codice, now); } catch (e) { console.error('Email failed:', e); }
 
-            return res.status(201).json({
-                success: true,
-                message: 'Ingresso registrato',
-                codice: codice,
-                visitor: data
-            });
+            return res.status(201).json({ success: true, message: 'Ingresso registrato', codice, visitor: data });
         }
 
-        // ============================
-        // PUT: CHECK-OUT (register exit)
-        // ============================
+        // PUT: CHECK-OUT
         if (req.method === 'PUT') {
             const { id } = req.body;
             if (!id) return res.status(400).json({ success: false, message: 'ID visitatore obbligatorio' });
 
             const now = new Date().toISOString();
-
-            const { data, error } = await supabase
-                .from('visitors')
-                .update({ ora_uscita: now })
-                .eq('id', id)
-                .is('ora_uscita', null)
-                .select()
-                .single();
-
+            const { data, error } = await supabase.from('visitors').update({ ora_uscita: now }).eq('id', id).is('ora_uscita', null).select().single();
             if (error) throw error;
             if (!data) return res.status(404).json({ success: false, message: 'Visitatore non trovato o già uscito' });
 
-            // Send exit email (non-blocking)
-            try {
-                await sendExitEmail(data.email, data.nome, data.codice_univoco, now);
-            } catch (emailErr) {
-                console.error('Exit email failed:', emailErr);
-            }
+            try { await sendExitEmail(data.email, data.nome, data.codice_univoco, now); } catch (e) { console.error('Exit email failed:', e); }
 
-            return res.status(200).json({
-                success: true,
-                message: 'Uscita registrata',
-                visitor: data
-            });
+            return res.status(200).json({ success: true, message: 'Uscita registrata', visitor: data });
         }
 
-        // ============================
-        // GET: List today's visitors
-        // ============================
+        // GET: List visitors
         if (req.method === 'GET') {
-            const date = req.query.date; // optional, format YYYY-MM-DD
-
-            let query = supabase
-                .from('visitors')
-                .select('*')
-                .order('ora_entrata', { ascending: false });
+            const date = req.query.date;
+            let query = supabase.from('visitors').select('*').order('ora_entrata', { ascending: false });
 
             if (date) {
-                query = query
-                    .gte('ora_entrata', `${date}T00:00:00`)
-                    .lt('ora_entrata', `${date}T23:59:59`);
+                query = query.gte('ora_entrata', `${date}T00:00:00`).lt('ora_entrata', `${date}T23:59:59`);
             } else {
-                // Default: today
                 const today = new Date().toISOString().split('T')[0];
-                query = query
-                    .gte('ora_entrata', `${today}T00:00:00`)
-                    .lt('ora_entrata', `${today}T23:59:59`);
+                query = query.gte('ora_entrata', `${today}T00:00:00`).lt('ora_entrata', `${today}T23:59:59`);
             }
 
             const { data, error } = await query;
             if (error) throw error;
-
             return res.status(200).json({ success: true, visitors: data });
         }
 
