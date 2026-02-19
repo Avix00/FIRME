@@ -1,12 +1,9 @@
 // ============================================================
-// ArTen Registro Visitatori - Frontend Logic
+// ArTen Registro Visitatori V2 - Frontend Logic
 // ============================================================
 
-// === CONFIGURAZIONE ===
-// IMPORTANTE: Sostituisci questo URL con l'URL del tuo Google Apps Script Web App
-const API_URL = 'https://script.google.com/macros/s/AKfycbxnpt907qKjSH5qP_LwS3ltNOhLLEgVR4XRKXfJmYDjNG_qXAxg1lt-qY4wZOEopt8NyQ/exec';
-
-// Password admin (hardcodata per semplicità)
+// === API BASE (Vercel serverless functions) ===
+const API_BASE = '/api';
 const ADMIN_PASSWORD = 'arten2026';
 
 // ============================================================
@@ -18,24 +15,24 @@ function showScreen(screenId) {
   if (target) target.classList.add('active');
 
   if (screenId === 'screen-checkin') {
-    setTimeout(() => {
-      initSignaturePad();
-      prefillCurrentTime('oraEntrata');
-    }, 100);
+    loadReferees();
+  }
+  if (screenId === 'screen-privacy') {
+    setTimeout(() => initSignaturePad(), 100);
   }
 }
 
 // ============================================================
 // DATE/TIME HELPERS
 // ============================================================
-function getCurrentTimeHHMM() {
-  const now = new Date();
-  return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+function formatTime(isoString) {
+  if (!isoString) return '';
+  return new Date(isoString).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
 }
 
-function prefillCurrentTime(inputId) {
-  const el = document.getElementById(inputId);
-  if (el && !el.value) el.value = getCurrentTimeHHMM();
+function formatDate(isoString) {
+  if (!isoString) return '';
+  return new Date(isoString).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
 }
 
 function updateDateTime() {
@@ -45,45 +42,67 @@ function updateDateTime() {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   el.textContent = now.toLocaleDateString('it-IT', options);
 }
-
 setInterval(updateDateTime, 30000);
 updateDateTime();
 
 // ============================================================
 // API HELPERS
 // ============================================================
-async function apiGet(params) {
-  const url = new URL(API_URL);
+async function apiGet(endpoint, params = {}) {
+  const url = new URL(API_BASE + endpoint, window.location.origin);
   Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-
-  try {
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('Network response was not ok');
-    return response.json();
-  } catch (e) {
-    throw new Error("Errore comunicazione GET: " + e.message);
-  }
+  const response = await fetch(url.toString());
+  return response.json();
 }
 
-// Invia dati come FORM URLENCODED (più robusto di JSON per Google Apps Script)
-async function apiPostSignatureEnc(data) {
-  // Convertiamo l'oggetto data in stringa urlencoded
-  const formData = new URLSearchParams();
-  Object.keys(data).forEach(key => formData.append(key, data[key]));
+async function apiPost(endpoint, data) {
+  const response = await fetch(API_BASE + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+async function apiPut(endpoint, data) {
+  const response = await fetch(API_BASE + endpoint, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+async function apiDelete(endpoint, data) {
+  const response = await fetch(API_BASE + endpoint, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+// ============================================================
+// LOAD REFEREES DROPDOWN
+// ============================================================
+async function loadReferees() {
+  const select = document.getElementById('referente');
+  if (!select) return;
 
   try {
-    await fetch(API_URL, {
-      method: 'POST',
-      mode: 'no-cors', // Bypass CORS (risposta opaca)
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
-    });
-    return { success: true };
+    const result = await apiGet('/referees');
+    if (result.success && result.referees) {
+      // Keep the first "-- Seleziona --" option
+      select.innerHTML = '<option value="">-- Seleziona --</option>';
+      result.referees.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.nome;
+        opt.textContent = r.nome;
+        select.appendChild(opt);
+      });
+    }
   } catch (err) {
-    // In no-cors, gli errori di rete reali vengono lanciati qui
-    throw new Error("Errore invio firma: " + err.message);
+    console.error('Failed to load referees:', err);
   }
 }
 
@@ -124,24 +143,18 @@ function getPointerPos(e) {
   const rect = signatureCanvas.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
-
 function onPointerDown(e) {
-  e.preventDefault();
-  isDrawing = true;
-  hasSignature = true;
+  e.preventDefault(); isDrawing = true; hasSignature = true;
   const pos = getPointerPos(e);
   signatureCtx.beginPath();
   signatureCtx.moveTo(pos.x, pos.y);
 }
-
 function onPointerMove(e) {
-  if (!isDrawing) return;
-  e.preventDefault();
+  if (!isDrawing) return; e.preventDefault();
   const pos = getPointerPos(e);
   signatureCtx.lineTo(pos.x, pos.y);
   signatureCtx.stroke();
 }
-
 function onPointerUp(e) { isDrawing = false; }
 
 function clearSignature() {
@@ -149,128 +162,183 @@ function clearSignature() {
   signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
   hasSignature = false;
 }
-
 function getSignatureData() {
   if (!signatureCanvas || !hasSignature) return null;
   return signatureCanvas.toDataURL('image/png');
 }
 
 // ============================================================
-// CHECK-IN (2 STEP - FETCH NO-CORS FORM-DATA)
+// CHECK-IN FLOW (2 steps)
 // ============================================================
-async function submitCheckIn() {
+
+// Temporary storage for form data between steps
+let pendingCheckInData = {};
+
+function goToPrivacyStep() {
   const nominativo = document.getElementById('nominativo').value.trim();
   const ditta = document.getElementById('ditta').value.trim();
-  const persona = document.getElementById('persona').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const referente = document.getElementById('referente').value;
   const zona = document.getElementById('zona').value.trim();
-  const oraEntrata = document.getElementById('oraEntrata').value;
-  const firma = getSignatureData();
 
-  if (!nominativo) { showError('Inserisci il nominativo.'); return; }
-  if (!ditta) { showError('Inserisci la ditta di provenienza.'); return; }
-  if (!persona) { showError('Inserisci la persona da visitare.'); return; }
-  if (!zona) { showError('Inserisci la zona di accesso.'); return; }
-  if (!oraEntrata) { showError("Inserisci l'ora di ingresso."); return; }
+  if (!nominativo) { showError('Inserisci il nome e cognome.'); return; }
+  if (!ditta) { showError('Inserisci la ditta.'); return; }
+  if (!email) { showError('Inserisci l\'email.'); return; }
+  if (!referente) { showError('Seleziona il referente interno.'); return; }
+
+  pendingCheckInData = { nome: nominativo, ditta, email, referente, zona };
+  showScreen('screen-privacy');
+}
+
+async function submitCheckIn() {
+  const firma = getSignatureData();
   if (!firma) { showError('La firma è obbligatoria.'); return; }
 
   const btn = document.getElementById('btn-submit-checkin');
   btn.disabled = true;
-  btn.textContent = '⏳ Registrazione... (1/2)';
+  btn.textContent = '⏳ Registrazione...';
 
   try {
-    console.log("Inizio Step 1: GET Dati");
-    // STEP 1: Invia dati testuali via GET
-    const result = await apiGet({
-      action: 'checkIn',
-      nominativo,
-      ditta,
-      personaDaVisitare: persona,
-      zonaAccesso: zona,
-      oraEntrata
+    const result = await apiPost('/visit', {
+      ...pendingCheckInData,
+      firma,
+      privacy_accettata: true
     });
 
-    console.log("Step 1 completato:", result);
-
     if (result.success) {
-      btn.textContent = '⏳ Caricamento firma... (2/2)';
-
-      console.log("Inizio Step 2: POST Firma (no-cors)");
-      // STEP 2: Invia firma via POST FETCH FORM-DATA NO-CORS
-      await apiPostSignatureEnc({
-        action: 'uploadSignature',
-        rowIndex: result.rowIndex,
-        firma: firma,
-        nominativo: nominativo,
-        dateStr: result.dateStr,
-        timeStr: result.timeStr
-      });
-
-      console.log("Step 2 inviato (assunto successo)");
-
-      showSuccess('Ingresso Registrato', 'Benvenuto ' + nominativo + '!\nIngresso registrato alle ' + result.timeStr + '.');
+      document.getElementById('success-message').textContent =
+        `Benvenuto ${pendingCheckInData.nome}! Una email di conferma è stata inviata a ${pendingCheckInData.email}.`;
+      document.getElementById('success-code').textContent = result.codice;
+      showScreen('screen-success');
       resetCheckInForm();
-
     } else {
-      showError(result.message || result.error || 'Errore durante la registrazione (Step 1).');
+      showError(result.message || 'Errore durante la registrazione.');
     }
-
   } catch (err) {
-    console.error("Errore JS:", err);
-    showError('Errore di comunicazione: ' + err.message);
+    showError('Errore di connessione: ' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '✅ REGISTRA INGRESSO';
+    btn.textContent = '✅ CONFERMA E REGISTRA';
   }
 }
 
 function resetCheckInForm() {
   document.getElementById('nominativo').value = '';
   document.getElementById('ditta').value = '';
-  document.getElementById('persona').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('referente').value = '';
   document.getElementById('zona').value = '';
-  document.getElementById('oraEntrata').value = '';
   clearSignature();
+  pendingCheckInData = {};
+}
+
+// ============================================================
+// CODE LOGIN
+// ============================================================
+async function submitCodeLogin() {
+  const codeInput = document.getElementById('code-input');
+  const codice = codeInput.value.trim().toUpperCase();
+
+  if (!codice) { showError('Inserisci il codice.'); return; }
+
+  const btn = document.getElementById('btn-code-login');
+  btn.disabled = true;
+  btn.textContent = '⏳ Verifica...';
+
+  try {
+    const result = await apiPost('/code-login', { codice });
+
+    if (result.success) {
+      document.getElementById('success-message').textContent = result.message;
+      document.getElementById('success-code').textContent = codice;
+      showScreen('screen-success');
+      codeInput.value = '';
+    } else {
+      showError(result.message || 'Codice non trovato.');
+    }
+  } catch (err) {
+    showError('Errore di connessione: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✅ ACCEDI';
+  }
 }
 
 // ============================================================
 // CHECK-OUT
 // ============================================================
+let allVisitors = [];
+
 async function loadCheckout() {
   showScreen('screen-checkout');
 
   const listEl = document.getElementById('visitors-list');
   const emptyEl = document.getElementById('checkout-empty');
   const loadingEl = document.getElementById('checkout-loading');
+  const searchEl = document.getElementById('checkout-search');
 
   listEl.innerHTML = '';
   emptyEl.style.display = 'none';
   loadingEl.style.display = 'flex';
+  if (searchEl) searchEl.value = '';
 
   try {
-    const result = await apiGet({ action: 'getVisitors' });
-
+    const result = await apiGet('/visit');
     loadingEl.style.display = 'none';
 
-    if (result.success && result.visitors && result.visitors.length > 0) {
-      result.visitors.forEach(v => {
-        const card = document.createElement('div');
-        card.className = 'visitor-card';
-        card.onclick = () => confirmCheckOut(v);
-        card.innerHTML = `
-          <div class="visitor-card-info">
-            <div class="visitor-card-name">${escapeHtml(v.nominativo)}</div>
-            <div class="visitor-card-details">${escapeHtml(v.ditta)} → ${escapeHtml(v.personaDaVisitare)}</div>
-          </div>
-          <div class="visitor-card-time">🕐 ${escapeHtml(v.oraEntrata)}</div>
-        `;
-        listEl.appendChild(card);
-      });
+    if (result.success && result.visitors) {
+      // Only show visitors without exit time
+      allVisitors = result.visitors.filter(v => !v.ora_uscita);
+
+      if (allVisitors.length > 0) {
+        renderCheckoutList(allVisitors);
+      } else {
+        emptyEl.style.display = 'flex';
+      }
     } else {
       emptyEl.style.display = 'flex';
     }
   } catch (err) {
     loadingEl.style.display = 'none';
-    showError('Errore lista visitatori: ' + err.message);
+    showError('Errore: ' + err.message);
+  }
+}
+
+function renderCheckoutList(visitors) {
+  const listEl = document.getElementById('visitors-list');
+  listEl.innerHTML = '';
+
+  visitors.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'visitor-card';
+    card.onclick = () => confirmCheckOut(v);
+    card.innerHTML = `
+      <div class="visitor-card-info">
+        <div class="visitor-card-name">${escapeHtml(v.nome)}</div>
+        <div class="visitor-card-details">${escapeHtml(v.ditta)} → ${escapeHtml(v.referente || '')}</div>
+        <div class="visitor-card-code">${escapeHtml(v.codice_univoco)}</div>
+      </div>
+      <div class="visitor-card-time">🕐 ${formatTime(v.ora_entrata)}</div>
+    `;
+    listEl.appendChild(card);
+  });
+}
+
+function filterCheckoutList() {
+  const query = document.getElementById('checkout-search').value.toLowerCase();
+  const filtered = allVisitors.filter(v =>
+    v.nome.toLowerCase().includes(query) ||
+    v.codice_univoco.toLowerCase().includes(query) ||
+    v.ditta.toLowerCase().includes(query)
+  );
+  const emptyEl = document.getElementById('checkout-empty');
+
+  if (filtered.length > 0) {
+    emptyEl.style.display = 'none';
+    renderCheckoutList(filtered);
+  } else {
+    document.getElementById('visitors-list').innerHTML = '';
+    emptyEl.style.display = 'flex';
   }
 }
 
@@ -279,8 +347,8 @@ let pendingCheckOut = null;
 function confirmCheckOut(visitor) {
   pendingCheckOut = visitor;
   document.getElementById('confirm-title').textContent = 'Registra Uscita';
-  document.getElementById('confirm-message').textContent = visitor.nominativo + ' (' + visitor.ditta + ')';
-  document.getElementById('oraUscita').value = getCurrentTimeHHMM();
+  document.getElementById('confirm-message').textContent =
+    `${visitor.nome} (${visitor.ditta}) - ${visitor.codice_univoco}`;
   document.getElementById('overlay-confirm').style.display = 'flex';
 }
 
@@ -291,29 +359,23 @@ function cancelConfirm() {
 
 async function okConfirm() {
   if (!pendingCheckOut) return;
-
-  const oraUscita = document.getElementById('oraUscita').value;
-  if (!oraUscita) { showError("Inserisci l'ora di uscita."); return; }
-
   document.getElementById('overlay-confirm').style.display = 'none';
 
   const visitor = pendingCheckOut;
   pendingCheckOut = null;
 
   try {
-    const result = await apiGet({
-      action: 'checkOut',
-      rowIndex: visitor.rowIndex,
-      oraUscita
-    });
-
+    const result = await apiPut('/visit', { id: visitor.id });
     if (result.success) {
-      showSuccess('Uscita Registrata', result.message);
+      document.getElementById('success-message').textContent =
+        `Uscita registrata per ${visitor.nome}. Email di conferma inviata.`;
+      document.getElementById('success-code').textContent = visitor.codice_univoco;
+      showScreen('screen-success');
     } else {
-      showError(result.message || 'Errore durante la registrazione uscita.');
+      showError(result.message || 'Errore registrazione uscita.');
     }
   } catch (err) {
-    showError('Errore uscita: ' + err.message);
+    showError('Errore: ' + err.message);
   }
 }
 
@@ -329,6 +391,7 @@ function adminLogin() {
     document.getElementById('admin-password').value = '';
     showScreen('screen-admin');
     setAdminDateToday();
+    loadAdminReferees();
   } else {
     errEl.style.display = 'block';
     const box = document.querySelector('.login-box');
@@ -338,10 +401,18 @@ function adminLogin() {
   }
 }
 
-function adminLogout() {
-  showScreen('screen-home');
+function adminLogout() { showScreen('screen-home'); }
+
+function switchAdminTab(tabId) {
+  document.querySelectorAll('.admin-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+
+  if (tabId === 'tab-referees') loadAdminReferees();
 }
 
+// --- Admin: Visitors Table ---
 function setAdminDateToday() {
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -355,9 +426,6 @@ async function loadAdminData() {
   const dateInput = document.getElementById('admin-date').value;
   if (!dateInput) return;
 
-  const parts = dateInput.split('-');
-  const dateStr = parts[2] + '/' + parts[1] + '/' + parts[0];
-
   const tableBody = document.getElementById('admin-table-body');
   const emptyEl = document.getElementById('admin-empty');
   const loadingEl = document.getElementById('admin-loading');
@@ -369,30 +437,34 @@ async function loadAdminData() {
   tableEl.style.display = 'none';
 
   try {
-    const result = await apiGet({ action: 'getHistory', date: dateStr });
-
+    const result = await apiGet('/visit', { date: dateInput });
     loadingEl.style.display = 'none';
 
-    if (result.success && result.entries && result.entries.length > 0) {
+    if (result.success && result.visitors && result.visitors.length > 0) {
       tableEl.style.display = 'table';
-      result.entries.forEach(entry => {
+      result.visitors.forEach(entry => {
         const tr = document.createElement('tr');
-        const uscitaDisplay = entry.oraUscita
-          ? `<span class="badge-out">${escapeHtml(entry.oraUscita)}</span>`
+        const isStillInside = !entry.ora_uscita;
+        if (isStillInside) tr.className = 'row-active';
+
+        const uscita = entry.ora_uscita
+          ? `<span class="badge-out">${formatTime(entry.ora_uscita)}</span>`
           : `<span class="badge-in">In sede</span>`;
 
-        const firmaDisplay = entry.firma && entry.firma.startsWith('http')
-          ? `<a href="${escapeHtml(entry.firma)}" target="_blank">Vedi</a>`
+        const firma = entry.firma_url
+          ? `<a href="${escapeHtml(entry.firma_url)}" target="_blank">Vedi</a>`
           : '—';
 
         tr.innerHTML = `
-          <td>${escapeHtml(entry.oraEntrata)}</td>
-          <td>${uscitaDisplay}</td>
-          <td><strong>${escapeHtml(entry.nominativo)}</strong></td>
+          <td>${formatTime(entry.ora_entrata)}</td>
+          <td>${uscita}</td>
+          <td><strong>${escapeHtml(entry.nome)}</strong></td>
           <td>${escapeHtml(entry.ditta)}</td>
-          <td>${escapeHtml(entry.personaDaVisitare)}</td>
-          <td>${escapeHtml(entry.zonaAccesso)}</td>
-          <td>${firmaDisplay}</td>
+          <td>${escapeHtml(entry.email)}</td>
+          <td>${escapeHtml(entry.referente || '')}</td>
+          <td>${escapeHtml(entry.zona || '')}</td>
+          <td><code>${escapeHtml(entry.codice_univoco)}</code></td>
+          <td>${firma}</td>
         `;
         tableBody.appendChild(tr);
       });
@@ -401,42 +473,126 @@ async function loadAdminData() {
     }
   } catch (err) {
     loadingEl.style.display = 'none';
-    showError('Errore storico: ' + err.message);
+    showError('Errore: ' + err.message);
   }
 }
 
-async function downloadExcel() {
+// --- Admin: Referees ---
+async function loadAdminReferees() {
+  const listEl = document.getElementById('referees-list');
+  listEl.innerHTML = '<p style="color:#888;">Caricamento...</p>';
+
   try {
-    const result = await apiGet({ action: 'exportExcel' });
-    if (result.success && result.url) {
-      window.open(result.url, '_blank');
-    } else {
-      showError('Errore: impossibile generare il link Excel.');
+    const result = await apiGet('/referees');
+    listEl.innerHTML = '';
+
+    if (result.success && result.referees) {
+      if (result.referees.length === 0) {
+        listEl.innerHTML = '<p style="color:#888;">Nessun referente configurato.</p>';
+        return;
+      }
+      result.referees.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'referee-item';
+        item.innerHTML = `
+          <div class="referee-info">
+            <strong>${escapeHtml(r.nome)}</strong>
+            ${r.email ? `<span style="color:#888;font-size:0.85rem;">${escapeHtml(r.email)}</span>` : ''}
+          </div>
+          <button class="btn btn-outline btn-sm btn-danger" onclick="removeReferee('${r.id}')">❌ Rimuovi</button>
+        `;
+        listEl.appendChild(item);
+      });
     }
   } catch (err) {
-    showError('Errore download: ' + err.message);
+    listEl.innerHTML = '<p style="color:#f00;">Errore caricamento.</p>';
+  }
+}
+
+async function addReferee() {
+  const nome = document.getElementById('new-referee-name').value.trim();
+  const email = document.getElementById('new-referee-email').value.trim();
+  if (!nome) { showError('Inserisci il nome del referente.'); return; }
+
+  try {
+    const result = await apiPost('/referees', { nome, email });
+    if (result.success) {
+      document.getElementById('new-referee-name').value = '';
+      document.getElementById('new-referee-email').value = '';
+      loadAdminReferees();
+    } else {
+      showError(result.message);
+    }
+  } catch (err) {
+    showError('Errore: ' + err.message);
+  }
+}
+
+async function removeReferee(id) {
+  try {
+    const result = await apiDelete('/referees', { id });
+    if (result.success) {
+      loadAdminReferees();
+    } else {
+      showError(result.message);
+    }
+  } catch (err) {
+    showError('Errore: ' + err.message);
+  }
+}
+
+// --- Admin: Excel Export ---
+async function downloadExcel() {
+  const dateInput = document.getElementById('admin-date').value;
+  if (!dateInput) return;
+
+  try {
+    const result = await apiGet('/visit', { date: dateInput });
+    if (!result.success || !result.visitors || result.visitors.length === 0) {
+      showError('Nessun dato da esportare.');
+      return;
+    }
+
+    // Generate CSV (compatible with Excel)
+    const headers = ['Data', 'Ora Entrata', 'Ora Uscita', 'Nome', 'Ditta', 'Email', 'Referente', 'Zona', 'Codice', 'Firma'];
+    const rows = result.visitors.map(v => [
+      formatDate(v.ora_entrata),
+      formatTime(v.ora_entrata),
+      v.ora_uscita ? formatTime(v.ora_uscita) : '',
+      v.nome,
+      v.ditta,
+      v.email,
+      v.referente || '',
+      v.zona || '',
+      v.codice_univoco,
+      v.firma_url || ''
+    ]);
+
+    let csv = '\uFEFF'; // BOM for Excel UTF-8
+    csv += headers.join(';') + '\n';
+    rows.forEach(row => {
+      csv += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';') + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `registro_visitatori_${dateInput}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showError('Errore export: ' + err.message);
   }
 }
 
 // ============================================================
 // OVERLAYS
 // ============================================================
-function showSuccess(title, message) {
-  document.getElementById('overlay-title').textContent = title;
-  document.getElementById('overlay-message').textContent = message;
-  document.getElementById('overlay-success').style.display = 'flex';
-}
-
-function closeOverlay() {
-  document.getElementById('overlay-success').style.display = 'none';
-  showScreen('screen-home');
-}
-
 function showError(message) {
   document.getElementById('overlay-error-message').textContent = message;
   document.getElementById('overlay-error').style.display = 'flex';
 }
-
 function closeErrorOverlay() {
   document.getElementById('overlay-error').style.display = 'none';
 }
