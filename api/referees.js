@@ -7,6 +7,10 @@ module.exports = async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    if (!supabase) {
+        return res.status(500).json({ success: false, message: 'Database non configurato. Controlla le variabili SUPABASE_URL e SUPABASE_KEY su Vercel.' });
+    }
+
     try {
         // GET: List active referees
         if (req.method === 'GET') {
