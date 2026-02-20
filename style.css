@@ -1037,6 +1037,91 @@ body {
   }
 }
 
+/* === SCREENSAVER === */
+.screensaver {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: fadeIn 1s ease;
+}
+
+.screensaver-content {
+  text-align: center;
+}
+
+.screensaver-logo {
+  width: 140px;
+  height: auto;
+  margin-bottom: 24px;
+  animation: float 4s ease-in-out infinite;
+}
+
+.screensaver-clock {
+  font-size: 7rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 4px;
+  line-height: 1;
+}
+
+.screensaver-date {
+  font-size: 1.2rem;
+  color: #555;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
+.screensaver-tap {
+  margin-top: 48px;
+  color: #333;
+  font-size: 0.9rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
 /* === QR BUTTON === */
 .btn-qr {
   background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
