@@ -29,7 +29,7 @@ function showScreen(screenId) {
 let pdfRendered = false;
 
 async function renderPDFDocument() {
-  if (pdfRendered) return; // don't re-render
+  if (pdfRendered) return;
   const container = document.getElementById('pdf-pages-container');
   if (!container) return;
 
@@ -39,33 +39,70 @@ async function renderPDFDocument() {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf = await pdfjsLib.getDocument('informativa.pdf').promise;
 
-    container.innerHTML = ''; // clear loading
+    container.innerHTML = '';
 
-    const containerWidth = container.clientWidth - 4; // subtract small margin
+    // Use a reasonable width for a "document rectangle" look
+    const maxWidth = Math.min(container.clientWidth - 40, 800);
 
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-
-      // Scale to fill container width
       const viewport = page.getViewport({ scale: 1 });
-      const scale = containerWidth / viewport.width;
+      const scale = maxWidth / viewport.width;
       const scaledViewport = page.getViewport({ scale });
 
       const canvas = document.createElement('canvas');
       canvas.className = 'pdf-page-canvas';
-      canvas.width = scaledViewport.width * (window.devicePixelRatio || 1);
-      canvas.height = scaledViewport.height * (window.devicePixelRatio || 1);
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = scaledViewport.width * dpr;
+      canvas.height = scaledViewport.height * dpr;
       canvas.style.width = scaledViewport.width + 'px';
       canvas.style.height = scaledViewport.height + 'px';
 
       const ctx = canvas.getContext('2d');
-      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-
+      ctx.scale(dpr, dpr);
       await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
-      container.appendChild(canvas);
+
+      if (i === pdf.numPages) {
+        // Last page: wrap in relative container and overlay signature canvas
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pdf-last-page-wrapper';
+        wrapper.style.position = 'relative';
+        wrapper.style.width = scaledViewport.width + 'px';
+        wrapper.appendChild(canvas);
+
+        // Signature overlay canvas — covers the area where "Firma del visitatore ___" is
+        // Based on PDF layout: roughly 35% to 60% from top of last page
+        const sigCanvas = document.createElement('canvas');
+        sigCanvas.id = 'signature-canvas';
+        sigCanvas.className = 'signature-overlay-canvas';
+        const sigTop = Math.round(scaledViewport.height * 0.30);
+        const sigHeight = Math.round(scaledViewport.height * 0.28);
+        sigCanvas.style.position = 'absolute';
+        sigCanvas.style.left = '10%';
+        sigCanvas.style.width = '80%';
+        sigCanvas.style.top = sigTop + 'px';
+        sigCanvas.style.height = sigHeight + 'px';
+        sigCanvas.style.cursor = 'crosshair';
+        sigCanvas.style.touchAction = 'none';
+        sigCanvas.style.zIndex = '5';
+
+        wrapper.appendChild(sigCanvas);
+        container.appendChild(wrapper);
+      } else {
+        container.appendChild(canvas);
+      }
     }
 
     pdfRendered = true;
+
+    // Auto-scroll to signature area on last page after a moment
+    setTimeout(() => {
+      const scrollContainer = document.getElementById('privacy-scroll-container');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }, 400);
+
   } catch (err) {
     console.error('PDF render error:', err);
     container.innerHTML = `
