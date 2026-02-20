@@ -69,16 +69,16 @@ async function renderPDFDocument() {
         wrapper.style.width = scaledViewport.width + 'px';
         wrapper.appendChild(canvas);
 
-        // Signature overlay canvas — covers the area where "Firma del visitatore ___" is
-        // Based on PDF layout: roughly 35% to 60% from top of last page
+        // Signature overlay canvas — covers the "Firma del visitatore ___" line
+        // This line is near the bottom of the last page, roughly 73% from top
         const sigCanvas = document.createElement('canvas');
         sigCanvas.id = 'signature-canvas';
         sigCanvas.className = 'signature-overlay-canvas';
-        const sigTop = Math.round(scaledViewport.height * 0.30);
-        const sigHeight = Math.round(scaledViewport.height * 0.28);
+        const sigTop = Math.round(scaledViewport.height * 0.68);
+        const sigHeight = Math.round(scaledViewport.height * 0.14);
         sigCanvas.style.position = 'absolute';
-        sigCanvas.style.left = '10%';
-        sigCanvas.style.width = '80%';
+        sigCanvas.style.left = '5%';
+        sigCanvas.style.width = '90%';
         sigCanvas.style.top = sigTop + 'px';
         sigCanvas.style.height = sigHeight + 'px';
         sigCanvas.style.cursor = 'crosshair';
@@ -95,19 +95,7 @@ async function renderPDFDocument() {
     pdfRendered = true;
 
     // Init signature pad now that canvas exists in the DOM
-    setTimeout(() => {
-      initSignaturePad();
-
-      // Auto-scroll to show the signature area
-      const scrollContainer = document.getElementById('privacy-scroll-container');
-      const sigCanvas = document.getElementById('signature-canvas');
-      if (scrollContainer && sigCanvas) {
-        const wrapperTop = sigCanvas.closest('.pdf-last-page-wrapper').offsetTop;
-        const sigOffset = sigCanvas.offsetTop;
-        // Scroll so signature line is visible (a bit above center)
-        scrollContainer.scrollTop = wrapperTop + sigOffset - 40;
-      }
-    }, 200);
+    setTimeout(() => initSignaturePad(), 200);
 
   } catch (err) {
     console.error('PDF render error:', err);
