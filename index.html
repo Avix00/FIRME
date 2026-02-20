@@ -25,11 +25,8 @@
   <div id="screen-home" class="screen active">
     <div class="home-container">
       <div class="logo-section">
-        <div class="logo-icon">
-          <img src="image-Photoroom.png" alt="ArTen Logo" style="width:120px;height:auto;">
-        </div>
-        <h1 class="company-name">ArTen</h1>
-        <p class="subtitle">Registro Visitatori</p>
+        <img src="image-Photoroom.png" alt="ArTen Logo" class="home-logo">
+        <p class="subtitle">REGISTRO VISITATORI</p>
       </div>
       <div class="home-actions">
         <button class="btn btn-primary btn-xl" onclick="showScreen('screen-checkin')">
@@ -61,7 +58,7 @@
     <div class="screen-header">
       <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
       <h2>Accedi con Codice</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="code-login-container">
       <div class="code-login-box">
@@ -83,7 +80,7 @@
     <div class="screen-header">
       <button class="btn-back" onclick="stopQRScanner(); showScreen('screen-home')">← Indietro</button>
       <h2>Scansiona QR Code</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="qr-scanner-container">
       <div class="qr-video-wrapper">
@@ -105,7 +102,7 @@
     <div class="screen-header">
       <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
       <h2>Nuovo Ingresso</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="form-container">
       <form id="checkin-form" onsubmit="return false;">
@@ -149,7 +146,7 @@
     <div class="screen-header">
       <button class="btn-back" onclick="showScreen('screen-checkin')">← Indietro</button>
       <h2>Informativa Privacy e Firma</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="privacy-document-container" id="privacy-scroll-container">
       <!-- PDF pages rendered here by pdf.js, signature canvas overlaid on last page -->
@@ -187,7 +184,7 @@
     <div class="screen-header">
       <button class="btn-back" onclick="showScreen('screen-home')">← Indietro</button>
       <h2>Registra Uscita</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="checkout-container">
       <div class="checkout-search">
