@@ -231,17 +231,60 @@
     <div class="screen-header">
       <button class="btn-back" onclick="adminLogout()">← Esci</button>
       <h2>Dashboard Admin</h2>
-      <div class="spacer"></div>
+      <img src="image-Photoroom.png" alt="ArTen" class="header-logo">
     </div>
     <div class="admin-container">
       <!-- TAB NAVIGATION -->
       <div class="admin-tabs">
-        <button class="admin-tab active" onclick="switchAdminTab('tab-visitors')">📋 Visitatori</button>
+        <button class="admin-tab active" onclick="switchAdminTab('tab-stats')">📊 Statistiche</button>
+        <button class="admin-tab" onclick="switchAdminTab('tab-visitors')">📋 Visitatori</button>
         <button class="admin-tab" onclick="switchAdminTab('tab-referees')">👥 Referenti</button>
       </div>
 
+      <!-- TAB: STATISTICS -->
+      <div id="tab-stats" class="admin-tab-content active">
+        <div class="stats-grid">
+          <div class="stat-card stat-entries">
+            <span class="stat-icon">➡️</span>
+            <div class="stat-value" id="stat-entries">0</div>
+            <div class="stat-label">Ingressi Oggi</div>
+          </div>
+          <div class="stat-card stat-exits">
+            <span class="stat-icon">⬅️</span>
+            <div class="stat-value" id="stat-exits">0</div>
+            <div class="stat-label">Uscite Oggi</div>
+          </div>
+          <div class="stat-card stat-present">
+            <span class="stat-icon">👥</span>
+            <div class="stat-value" id="stat-present">0</div>
+            <div class="stat-label">Presenti Ora</div>
+          </div>
+          <div class="stat-card stat-duration">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-value" id="stat-duration">—</div>
+            <div class="stat-label">Durata Media</div>
+          </div>
+        </div>
+
+        <div class="stats-section">
+          <h3>📈 Flusso Orario</h3>
+          <div class="chart-container" id="hourly-chart"></div>
+        </div>
+
+        <div class="stats-columns">
+          <div class="stats-section">
+            <h3>🏆 Visitatori Frequenti</h3>
+            <div id="top-visitors" class="stats-list"></div>
+          </div>
+          <div class="stats-section">
+            <h3>👤 Referenti più Richiesti</h3>
+            <div id="top-referees" class="stats-list"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB: VISITORS -->
-      <div id="tab-visitors" class="admin-tab-content active">
+      <div id="tab-visitors" class="admin-tab-content">
         <div class="admin-toolbar">
           <div class="admin-date-picker">
             <label for="admin-date">Data:</label>
