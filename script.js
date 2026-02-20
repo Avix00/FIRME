@@ -997,3 +997,56 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// ============================================================
+// SCREENSAVER (Standby mode after inactivity)
+// ============================================================
+const SCREENSAVER_TIMEOUT = 2 * 60 * 1000; // 2 minutes
+let screensaverTimer = null;
+let screensaverClockInterval = null;
+
+function resetScreensaverTimer() {
+  if (screensaverTimer) clearTimeout(screensaverTimer);
+  screensaverTimer = setTimeout(activateScreensaver, SCREENSAVER_TIMEOUT);
+}
+
+function activateScreensaver() {
+  const ss = document.getElementById('screensaver');
+  if (!ss) return;
+  // Don't activate if admin is logged in viewing data
+  ss.style.display = 'flex';
+  updateScreensaverClock();
+  screensaverClockInterval = setInterval(updateScreensaverClock, 1000);
+}
+
+function wakeFromScreensaver() {
+  const ss = document.getElementById('screensaver');
+  if (ss) ss.style.display = 'none';
+  if (screensaverClockInterval) {
+    clearInterval(screensaverClockInterval);
+    screensaverClockInterval = null;
+  }
+  resetScreensaverTimer();
+}
+
+function updateScreensaverClock() {
+  const now = new Date();
+  const clock = document.getElementById('screensaver-clock');
+  const dateEl = document.getElementById('screensaver-date');
+  if (clock) {
+    clock.textContent = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+  }
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString('it-IT', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
+}
+
+// Listen for any user interaction to reset timer
+['touchstart', 'mousedown', 'mousemove', 'keydown', 'scroll'].forEach(evt => {
+  document.addEventListener(evt, resetScreensaverTimer, { passive: true });
+});
+
+// Start the timer on page load
+resetScreensaverTimer();
