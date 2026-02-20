@@ -10,6 +10,9 @@ const ADMIN_PASSWORD = 'arten2026';
 // NAVIGATION
 // ============================================================
 function showScreen(screenId) {
+  // Stop QR scanner if leaving that screen
+  if (screenId !== 'screen-qr-scanner') stopQRScanner();
+
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
@@ -19,6 +22,9 @@ function showScreen(screenId) {
   }
   if (screenId === 'screen-privacy') {
     renderPDFDocument();
+  }
+  if (screenId === 'screen-qr-scanner') {
+    startQRScanner();
   }
 }
 
@@ -407,6 +413,104 @@ async function submitCodeLogin() {
     btn.disabled = false;
     btn.textContent = '✅ ACCEDI';
   }
+}
+
+// ============================================================
+// QR CODE SCANNER
+// ============================================================
+let qrStream = null;
+let qrAnimFrame = null;
+let qrProcessing = false;
+
+async function startQRScanner() {
+  const video = document.getElementById('qr-video');
+  const status = document.getElementById('qr-status');
+  if (!video) return;
+
+  status.textContent = 'Avvio fotocamera...';
+  status.className = 'qr-status';
+
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = qrStream;
+    await video.play();
+    status.textContent = 'Inquadra il QR code ricevuto via email';
+    scanQRFrame(video, status);
+  } catch (err) {
+    console.error('Camera error:', err);
+    status.textContent = '⚠️ Impossibile accedere alla fotocamera. Controlla i permessi.';
+    status.className = 'qr-status qr-error';
+  }
+}
+
+function scanQRFrame(video, status) {
+  if (!qrStream) return;
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  function tick() {
+    if (!qrStream || qrProcessing) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+
+      if (code && code.data) {
+        const match = code.data.trim().toUpperCase();
+        // Accept codes that look like ARTEN-XXXX
+        if (/^ARTEN-\d{4}$/.test(match)) {
+          qrProcessing = true;
+          status.textContent = '✅ QR riconosciuto: ' + match;
+          status.className = 'qr-status qr-success';
+          // Auto-login with the scanned code
+          handleQRLogin(match);
+          return;
+        }
+      }
+    }
+    qrAnimFrame = requestAnimationFrame(tick);
+  }
+  qrAnimFrame = requestAnimationFrame(tick);
+}
+
+async function handleQRLogin(codice) {
+  try {
+    const result = await apiPost('/code-login', { codice });
+    stopQRScanner();
+
+    if (result.success) {
+      document.getElementById('success-message').textContent = result.message;
+      document.getElementById('success-code').textContent = codice;
+      showScreen('screen-success');
+    } else {
+      showError(result.message || 'Codice non trovato.');
+      showScreen('screen-home');
+    }
+  } catch (err) {
+    stopQRScanner();
+    showError('Errore di connessione: ' + err.message);
+    showScreen('screen-home');
+  }
+}
+
+function stopQRScanner() {
+  if (qrAnimFrame) {
+    cancelAnimationFrame(qrAnimFrame);
+    qrAnimFrame = null;
+  }
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null;
+  }
+  const video = document.getElementById('qr-video');
+  if (video) video.srcObject = null;
+  qrProcessing = false;
 }
 
 // ============================================================
