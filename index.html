@@ -14,6 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 
 <body>
@@ -119,46 +120,30 @@
   <div id="screen-privacy" class="screen">
     <div class="screen-header">
       <button class="btn-back" onclick="showScreen('screen-checkin')">← Indietro</button>
-      <h2>Informativa Privacy</h2>
+      <h2>Informativa Privacy e Firma</h2>
       <div class="spacer"></div>
     </div>
-    <div class="privacy-container">
-      <div class="pdf-viewer">
-        <div id="pdf-placeholder" class="pdf-placeholder">
-          <div class="pdf-placeholder-content">
-            <span style="font-size:3rem;">📄</span>
-            <h3>Informativa sul Trattamento dei Dati Personali</h3>
-            <p>Ai sensi del Regolamento UE 2016/679 (GDPR)</p>
-            <hr style="border-color:#333;margin:16px 0;">
-            <p style="font-size:0.9rem;color:#999;line-height:1.8;">
-              ArTen S.r.l., in qualità di Titolare del trattamento, informa che i dati personali forniti
-              saranno trattati per le finalità legate alla registrazione degli accessi presso la sede aziendale,
-              nel rispetto della normativa vigente in materia di protezione dei dati personali.<br><br>
-              I dati raccolti (nome, cognome, azienda, email, firma digitale) saranno utilizzati esclusivamente
-              per la gestione del registro visitatori e conservati per il periodo previsto dalla normativa.<br><br>
-              Il conferimento dei dati è necessario per l'accesso alla struttura. Il mancato conferimento
-              comporterà l'impossibilità di procedere con la registrazione dell'ingresso.<br><br>
-              L'interessato può esercitare i diritti previsti dagli artt. 15-22 del GDPR scrivendo a:
-              <strong>privacy@arten.it</strong>
-            </p>
-          </div>
-        </div>
-        <!-- When PDF is available, replace with: <iframe id="pdf-iframe" src="privacy.pdf"></iframe> -->
-      </div>
+    <div class="privacy-document-container" id="privacy-scroll-container">
+      <!-- PDF pages rendered here by pdf.js -->
+      <div id="pdf-pages-container"></div>
 
-      <div class="signature-section">
-        <label>Firma per accettazione *</label>
-        <div class="signature-wrapper">
+      <!-- Signature area at bottom of document -->
+      <div class="signature-on-document">
+        <div class="signature-document-divider">
+          <span>✍️ FIRMA PER ACCETTAZIONE</span>
+        </div>
+        <div class="signature-canvas-doc-wrapper">
           <canvas id="signature-canvas"></canvas>
-          <button type="button" class="btn btn-outline btn-sm" onclick="clearSignature()">Cancella Firma</button>
+          <button type="button" class="btn btn-outline btn-sm signature-clear-btn" onclick="clearSignature()">Cancella
+            Firma</button>
         </div>
       </div>
+    </div>
 
-      <div class="form-actions">
-        <button type="button" class="btn btn-primary btn-lg" id="btn-submit-checkin" onclick="submitCheckIn()">
-          ✅ CONFERMA E REGISTRA
-        </button>
-      </div>
+    <div class="privacy-bottom-bar">
+      <button type="button" class="btn btn-primary btn-lg" id="btn-submit-checkin" onclick="submitCheckIn()">
+        ✅ CONFERMA E REGISTRA
+      </button>
     </div>
   </div>
 
