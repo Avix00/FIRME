@@ -1037,6 +1037,71 @@ body {
   }
 }
 
+/* === WELCOME BACK OVERLAY === */
+.welcome-content {
+  border-color: #16A34A !important;
+  max-width: 480px !important;
+}
+
+.welcome-wave {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 8px;
+  animation: waveHand 1.5s ease-in-out;
+}
+
+.welcome-content h2 {
+  font-size: 1.8rem;
+  color: #16A34A;
+}
+
+.welcome-details {
+  color: #aaa !important;
+  font-size: 1.1rem !important;
+}
+
+.welcome-code-box {
+  background: #111;
+  border: 1px solid #16A34A;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 16px 0;
+}
+
+.welcome-auto-close {
+  color: #555 !important;
+  font-size: 0.8rem !important;
+  margin-top: 12px !important;
+}
+
+@keyframes waveHand {
+
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+
+  15% {
+    transform: rotate(14deg);
+  }
+
+  30% {
+    transform: rotate(-8deg);
+  }
+
+  45% {
+    transform: rotate(14deg);
+  }
+
+  60% {
+    transform: rotate(-4deg);
+  }
+
+  75% {
+    transform: rotate(10deg);
+  }
+}
+
 /* === SCREENSAVER === */
 .screensaver {
   position: fixed;
