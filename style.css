@@ -856,6 +856,187 @@ body {
   font-size: 3rem;
 }
 
+/* === DASHBOARD STATS === */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: #111;
+  border: 1px solid #1A1A1A;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.stat-entries::before {
+  background: linear-gradient(90deg, #16A34A, #22c55e);
+}
+
+.stat-exits::before {
+  background: linear-gradient(90deg, #f97316, #fb923c);
+}
+
+.stat-present::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.stat-duration::before {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.stat-icon {
+  font-size: 1.6rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #fff;
+  transition: transform 0.3s ease;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 4px;
+}
+
+.stats-section {
+  background: #111;
+  border: 1px solid #1A1A1A;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stats-section h3 {
+  font-size: 1rem;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.stats-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Hourly Chart */
+.chart-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 160px;
+  padding: 8px 0;
+}
+
+.chart-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #16A34A, #0f7a36);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  min-height: 4px;
+  transition: height 0.5s ease;
+}
+
+.chart-bar-value {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #16A34A;
+}
+
+.chart-bar-label {
+  font-size: 0.6rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* Top Lists */
+.stats-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #1A1A1A;
+}
+
+.stats-list-item:last-child {
+  border-bottom: none;
+}
+
+.stats-rank {
+  font-size: 1.1rem;
+  min-width: 28px;
+}
+
+.stats-name {
+  flex: 1;
+  color: #ddd;
+  font-size: 0.9rem;
+}
+
+.stats-count {
+  background: #1A1A1A;
+  color: #16A34A;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.stats-empty {
+  color: #555;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+  }
+}
+
 /* === QR BUTTON === */
 .btn-qr {
   background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
