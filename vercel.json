@@ -1,4 +1,9 @@
 {
   "outputDirectory": ".",
-  "buildCommand": ""
+  "buildCommand": "",
+  "functions": {
+    "api/visit.js": {
+      "maxDuration": 30
+    }
+  }
 }
