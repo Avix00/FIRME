@@ -29,7 +29,7 @@ async function sendEntryEmail(to, nome, codice, oraEntrata) {
         subject: `Conferma Ingresso - ${codice}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
           <div style="background:#111;color:#fff;padding:24px;border-radius:12px;text-align:center;">
-            <h1 style="color:#16A34A;margin:0 0 8px;">ArTen</h1>
+            <img src="https://firme-eight.vercel.app/image-Photoroom.png" alt="ArTen" style="width:120px;height:auto;">
             <p style="margin:0;color:#888;">Registro Visitatori</p>
           </div>
           <div style="padding:24px 0;">
@@ -60,7 +60,7 @@ async function sendExitEmail(to, nome, codice, oraUscita) {
         subject: `Conferma Uscita - ${codice}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
           <div style="background:#111;color:#fff;padding:24px;border-radius:12px;text-align:center;">
-            <h1 style="color:#16A34A;margin:0 0 8px;">ArTen</h1>
+            <img src="https://firme-eight.vercel.app/image-Photoroom.png" alt="ArTen" style="width:120px;height:auto;">
             <p style="margin:0;color:#888;">Registro Visitatori</p>
           </div>
           <div style="padding:24px 0;">
