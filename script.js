@@ -19,7 +19,6 @@ function showScreen(screenId) {
   }
   if (screenId === 'screen-privacy') {
     renderPDFDocument();
-    setTimeout(() => initSignaturePad(), 300);
   }
 }
 
@@ -95,13 +94,20 @@ async function renderPDFDocument() {
 
     pdfRendered = true;
 
-    // Auto-scroll to signature area on last page after a moment
+    // Init signature pad now that canvas exists in the DOM
     setTimeout(() => {
+      initSignaturePad();
+
+      // Auto-scroll to show the signature area
       const scrollContainer = document.getElementById('privacy-scroll-container');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      const sigCanvas = document.getElementById('signature-canvas');
+      if (scrollContainer && sigCanvas) {
+        const wrapperTop = sigCanvas.closest('.pdf-last-page-wrapper').offsetTop;
+        const sigOffset = sigCanvas.offsetTop;
+        // Scroll so signature line is visible (a bit above center)
+        scrollContainer.scrollTop = wrapperTop + sigOffset - 40;
       }
-    }, 400);
+    }, 200);
 
   } catch (err) {
     console.error('PDF render error:', err);
