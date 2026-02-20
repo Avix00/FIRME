@@ -348,26 +348,36 @@ body {
   border-color: #16A34A;
 }
 
-/* === PRIVACY / PDF DOCUMENT + SIGNATURE === */
+/* === PRIVACY / PDF DOCUMENT + SIGNATURE OVERLAY === */
 .privacy-document-container {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px;
-  background: #fff;
+  padding: 20px;
+  background: #111;
 }
 
 #pdf-pages-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .pdf-page-canvas {
   display: block;
   max-width: 100%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+}
+
+.pdf-last-page-wrapper {
+  margin: 0 auto;
+}
+
+.signature-overlay-canvas {
+  background: transparent !important;
 }
 
 .pdf-loading,
@@ -377,56 +387,8 @@ body {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #666;
+  color: #888;
   gap: 12px;
-}
-
-/* Signature area at bottom of PDF document */
-.signature-on-document {
-  margin-top: 2px;
-  background: #fff;
-  padding: 0 8px 24px;
-}
-
-.signature-document-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 0 8px;
-}
-
-.signature-document-divider span {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #333;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  background: #fff;
-  padding: 0 12px;
-}
-
-.signature-canvas-doc-wrapper {
-  position: relative;
-  border: 2px solid #333;
-  border-radius: 4px;
-  background: #fafafa;
-}
-
-.signature-canvas-doc-wrapper #signature-canvas {
-  width: 100%;
-  height: 180px;
-  background: transparent;
-  border: none;
-  border-radius: 2px;
-  touch-action: none;
-  cursor: crosshair;
-  display: block;
-}
-
-.signature-clear-btn {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
 }
 
 /* Fixed bottom bar for submit */
@@ -437,6 +399,7 @@ body {
   backdrop-filter: blur(12px);
   border-top: 1px solid #1A1A1A;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 
