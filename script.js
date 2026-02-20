@@ -400,10 +400,8 @@ async function submitCodeLogin() {
     const result = await apiPost('/code-login', { codice });
 
     if (result.success) {
-      document.getElementById('success-message').textContent = result.message;
-      document.getElementById('success-code').textContent = codice;
-      showScreen('screen-success');
       codeInput.value = '';
+      showWelcome(result.visitor, codice);
     } else {
       showError(result.message || 'Codice non trovato.');
     }
@@ -485,9 +483,7 @@ async function handleQRLogin(codice) {
     stopQRScanner();
 
     if (result.success) {
-      document.getElementById('success-message').textContent = result.message;
-      document.getElementById('success-code').textContent = codice;
-      showScreen('screen-success');
+      showWelcome(result.visitor, codice);
     } else {
       showError(result.message || 'Codice non trovato.');
       showScreen('screen-home');
@@ -497,6 +493,31 @@ async function handleQRLogin(codice) {
     showError('Errore di connessione: ' + err.message);
     showScreen('screen-home');
   }
+}
+
+// ============================================================
+// WELCOME BACK OVERLAY
+// ============================================================
+let welcomeTimer = null;
+
+function showWelcome(visitor, codice) {
+  const nome = visitor ? visitor.nome : '';
+  const ditta = visitor ? visitor.ditta : '';
+
+  document.getElementById('welcome-name').textContent = `Bentornato, ${nome}!`;
+  document.getElementById('welcome-details').textContent = ditta;
+  document.getElementById('welcome-code').textContent = codice;
+  document.getElementById('overlay-welcome').style.display = 'flex';
+  showScreen('screen-home');
+
+  // Auto-close after 4 seconds
+  if (welcomeTimer) clearTimeout(welcomeTimer);
+  welcomeTimer = setTimeout(closeWelcome, 4000);
+}
+
+function closeWelcome() {
+  document.getElementById('overlay-welcome').style.display = 'none';
+  if (welcomeTimer) { clearTimeout(welcomeTimer); welcomeTimer = null; }
 }
 
 function stopQRScanner() {
