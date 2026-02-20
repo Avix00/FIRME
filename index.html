@@ -124,23 +124,13 @@
       <div class="spacer"></div>
     </div>
     <div class="privacy-document-container" id="privacy-scroll-container">
-      <!-- PDF pages rendered here by pdf.js -->
+      <!-- PDF pages rendered here by pdf.js, signature canvas overlaid on last page -->
       <div id="pdf-pages-container"></div>
-
-      <!-- Signature area at bottom of document -->
-      <div class="signature-on-document">
-        <div class="signature-document-divider">
-          <span>✍️ FIRMA PER ACCETTAZIONE</span>
-        </div>
-        <div class="signature-canvas-doc-wrapper">
-          <canvas id="signature-canvas"></canvas>
-          <button type="button" class="btn btn-outline btn-sm signature-clear-btn" onclick="clearSignature()">Cancella
-            Firma</button>
-        </div>
-      </div>
     </div>
 
     <div class="privacy-bottom-bar">
+      <button type="button" class="btn btn-outline btn-sm" onclick="clearSignature()"
+        style="margin-right:16px;">Cancella Firma</button>
       <button type="button" class="btn btn-primary btn-lg" id="btn-submit-checkin" onclick="submitCheckIn()">
         ✅ CONFERMA E REGISTRA
       </button>
