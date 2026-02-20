@@ -362,6 +362,20 @@
     </div>
   </div>
 
+  <!-- ===================== WELCOME BACK OVERLAY ===================== -->
+  <div id="overlay-welcome" class="overlay" style="display:none;" onclick="closeWelcome()">
+    <div class="overlay-content welcome-content">
+      <span class="welcome-wave">👋</span>
+      <h2 id="welcome-name">Bentornato!</h2>
+      <p id="welcome-details" class="welcome-details"></p>
+      <div class="welcome-code-box">
+        <p style="color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;">Il tuo codice</p>
+        <p id="welcome-code" class="generated-code" style="margin:4px 0;"></p>
+      </div>
+      <p class="welcome-auto-close">Ingresso registrato automaticamente ✅</p>
+    </div>
+  </div>
+
   <!-- ===================== SCREENSAVER OVERLAY ===================== -->
   <div id="screensaver" class="screensaver" style="display:none;" onclick="wakeFromScreensaver()">
     <div class="screensaver-content">
