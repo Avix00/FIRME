@@ -39,6 +39,10 @@ async function sendEntryEmail(to, nome, codice, oraEntrata) {
               <p style="margin:0 0 4px;color:#666;font-size:12px;">IL SUO CODICE ACCESSO</p>
               <p style="margin:0;font-size:32px;font-weight:bold;color:#16A34A;letter-spacing:4px;">${codice}</p>
             </div>
+            <div style="text-align:center;margin:16px 0;">
+              <p style="margin:0 0 8px;color:#666;font-size:12px;text-transform:uppercase;letter-spacing:2px;">OPPURE SCANSIONA IL QR CODE</p>
+              <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(codice)}&size=200x200&bgcolor=ffffff&color=000000" alt="QR Code ${codice}" style="width:200px;height:200px;border-radius:8px;">
+            </div>
             <p><strong>Data:</strong> ${dateStr}<br><strong>Ora:</strong> ${timeStr}</p>
             <p style="color:#666;font-size:13px;">Conservi questo codice per accessi futuri.</p>
           </div>
