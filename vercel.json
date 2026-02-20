@@ -4,6 +4,15 @@
   "functions": {
     "api/visit.js": {
       "maxDuration": 30
+    },
+    "api/cron-alert.js": {
+      "maxDuration": 15
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron-alert",
+      "schedule": "0 17 * * *"
+    }
+  ]
 }
