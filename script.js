@@ -18,7 +18,62 @@ function showScreen(screenId) {
     loadReferees();
   }
   if (screenId === 'screen-privacy') {
-    setTimeout(() => initSignaturePad(), 100);
+    renderPDFDocument();
+    setTimeout(() => initSignaturePad(), 300);
+  }
+}
+
+// ============================================================
+// PDF RENDERING (pdf.js)
+// ============================================================
+let pdfRendered = false;
+
+async function renderPDFDocument() {
+  if (pdfRendered) return; // don't re-render
+  const container = document.getElementById('pdf-pages-container');
+  if (!container) return;
+
+  container.innerHTML = '<div class="pdf-loading"><div class="spinner"></div><p>Caricamento documento...</p></div>';
+
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument('informativa.pdf').promise;
+
+    container.innerHTML = ''; // clear loading
+
+    const containerWidth = container.clientWidth - 4; // subtract small margin
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+
+      // Scale to fill container width
+      const viewport = page.getViewport({ scale: 1 });
+      const scale = containerWidth / viewport.width;
+      const scaledViewport = page.getViewport({ scale });
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page-canvas';
+      canvas.width = scaledViewport.width * (window.devicePixelRatio || 1);
+      canvas.height = scaledViewport.height * (window.devicePixelRatio || 1);
+      canvas.style.width = scaledViewport.width + 'px';
+      canvas.style.height = scaledViewport.height + 'px';
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+      await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+      container.appendChild(canvas);
+    }
+
+    pdfRendered = true;
+  } catch (err) {
+    console.error('PDF render error:', err);
+    container.innerHTML = `
+      <div class="pdf-error">
+        <span style="font-size:2rem;">⚠️</span>
+        <p>Impossibile caricare il documento PDF.</p>
+        <p style="font-size:0.8rem;color:#666;">${err.message}</p>
+      </div>`;
   }
 }
 
@@ -123,7 +178,7 @@ function initSignaturePad() {
   signatureCanvas.height = rect.height * (window.devicePixelRatio || 1);
   signatureCtx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
 
-  signatureCtx.strokeStyle = '#16A34A';
+  signatureCtx.strokeStyle = '#1a237e';
   signatureCtx.lineWidth = 3;
   signatureCtx.lineCap = 'round';
   signatureCtx.lineJoin = 'round';
@@ -230,6 +285,9 @@ function resetCheckInForm() {
   document.getElementById('zona').value = '';
   clearSignature();
   pendingCheckInData = {};
+  pdfRendered = false;
+  const pdfContainer = document.getElementById('pdf-pages-container');
+  if (pdfContainer) pdfContainer.innerHTML = '';
 }
 
 // ============================================================
