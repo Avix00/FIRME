@@ -74,8 +74,8 @@ async function renderPDFDocument() {
         const sigCanvas = document.createElement('canvas');
         sigCanvas.id = 'signature-canvas';
         sigCanvas.className = 'signature-overlay-canvas';
-        const sigTop = Math.round(scaledViewport.height * 0.82);
-        const sigHeight = Math.round(scaledViewport.height * 0.07);
+        const sigTop = Math.round(scaledViewport.height * 0.84);
+        const sigHeight = Math.round(scaledViewport.height * 0.10);
         sigCanvas.style.position = 'absolute';
         sigCanvas.style.left = '5%';
         sigCanvas.style.width = '90%';
