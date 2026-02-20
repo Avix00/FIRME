@@ -631,6 +631,8 @@ async function okConfirm() {
 // ============================================================
 // ADMIN
 // ============================================================
+let statsInterval = null;
+
 function adminLogin() {
   const pwd = document.getElementById('admin-password').value;
   const errEl = document.getElementById('login-error');
@@ -641,6 +643,10 @@ function adminLogin() {
     showScreen('screen-admin');
     setAdminDateToday();
     loadAdminReferees();
+    loadDashboardStats();
+    // Auto-refresh stats every 30s
+    if (statsInterval) clearInterval(statsInterval);
+    statsInterval = setInterval(loadDashboardStats, 30000);
   } else {
     errEl.style.display = 'block';
     const box = document.querySelector('.login-box');
@@ -659,6 +665,130 @@ function switchAdminTab(tabId) {
   event.target.classList.add('active');
 
   if (tabId === 'tab-referees') loadAdminReferees();
+  if (tabId === 'tab-stats') loadDashboardStats();
+}
+
+// ============================================================
+// DASHBOARD STATS
+// ============================================================
+async function loadDashboardStats() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const result = await apiGet('/visit', { date: today });
+    if (!result.success) return;
+
+    const visitors = result.data || [];
+    const entries = visitors.length;
+    const exits = visitors.filter(v => v.ora_uscita).length;
+    const present = entries - exits;
+
+    // Average duration (only for those who checked out)
+    const durations = visitors
+      .filter(v => v.ora_uscita)
+      .map(v => (new Date(v.ora_uscita) - new Date(v.ora_entrata)) / 60000);
+    const avgMin = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+    const avgStr = durations.length > 0 ? (avgMin >= 60 ? `${Math.floor(avgMin / 60)}h ${avgMin % 60}m` : `${avgMin}m`) : '—';
+
+    // Update stat cards with animation
+    animateStat('stat-entries', entries);
+    animateStat('stat-exits', exits);
+    animateStat('stat-present', present);
+    document.getElementById('stat-duration').textContent = avgStr;
+
+    // Hourly chart (7:00 - 20:00)
+    renderHourlyChart(visitors);
+
+    // Top visitors (all time - use today's data to count names)
+    renderTopVisitors(visitors);
+
+    // Top referees
+    renderTopReferees(visitors);
+
+  } catch (err) {
+    console.error('Stats load error:', err);
+  }
+}
+
+function animateStat(id, target) {
+  const el = document.getElementById(id);
+  const current = parseInt(el.textContent) || 0;
+  if (current === target) return;
+  el.textContent = target;
+  el.style.transform = 'scale(1.3)';
+  setTimeout(() => el.style.transform = 'scale(1)', 300);
+}
+
+function renderHourlyChart(visitors) {
+  const container = document.getElementById('hourly-chart');
+  const hours = {};
+  for (let h = 7; h <= 20; h++) hours[h] = 0;
+
+  visitors.forEach(v => {
+    const h = new Date(v.ora_entrata).getHours();
+    if (hours[h] !== undefined) hours[h]++;
+  });
+
+  const max = Math.max(...Object.values(hours), 1);
+
+  container.innerHTML = Object.entries(hours).map(([h, count]) => {
+    const pct = (count / max) * 100;
+    return `
+      <div class="chart-bar-wrapper">
+        <div class="chart-bar" style="height:${Math.max(pct, 4)}%">
+          ${count > 0 ? `<span class="chart-bar-value">${count}</span>` : ''}
+        </div>
+        <span class="chart-bar-label">${h}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTopVisitors(visitors) {
+  const counts = {};
+  visitors.forEach(v => {
+    const key = v.nome;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const container = document.getElementById('top-visitors');
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p class="stats-empty">Nessun dato</p>';
+    return;
+  }
+
+  container.innerHTML = sorted.map(([name, count], i) => `
+    <div class="stats-list-item">
+      <span class="stats-rank">${['🥇', '🥈', '🥉', '4°', '5°'][i]}</span>
+      <span class="stats-name">${escapeHtml(name)}</span>
+      <span class="stats-count">${count}x</span>
+    </div>
+  `).join('');
+}
+
+function renderTopReferees(visitors) {
+  const counts = {};
+  visitors.forEach(v => {
+    if (!v.referente) return;
+    counts[v.referente] = (counts[v.referente] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const container = document.getElementById('top-referees');
+
+  if (sorted.length === 0) {
+    container.innerHTML = '<p class="stats-empty">Nessun dato</p>';
+    return;
+  }
+
+  container.innerHTML = sorted.map(([name, count], i) => `
+    <div class="stats-list-item">
+      <span class="stats-rank">${['🥇', '🥈', '🥉', '4°', '5°'][i]}</span>
+      <span class="stats-name">${escapeHtml(name)}</span>
+      <span class="stats-count">${count}x</span>
+    </div>
+  `).join('');
 }
 
 // --- Admin: Visitors Table ---
