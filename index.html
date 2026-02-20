@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 </head>
 
 <body>
@@ -42,6 +43,10 @@
         <button class="btn btn-accent btn-xl" onclick="showScreen('screen-code-login')">
           <span class="btn-icon">🔑</span>
           ACCEDI CON CODICE
+        </button>
+        <button class="btn btn-qr btn-xl" onclick="showScreen('screen-qr-scanner')">
+          <span class="btn-icon">📷</span>
+          SCANSIONA QR
         </button>
       </div>
       <button class="btn-admin-link" onclick="showScreen('screen-admin-login')">
@@ -70,6 +75,28 @@
           ✅ ACCEDI
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== QR SCANNER SCREEN ===================== -->
+  <div id="screen-qr-scanner" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="stopQRScanner(); showScreen('screen-home')">← Indietro</button>
+      <h2>Scansiona QR Code</h2>
+      <div class="spacer"></div>
+    </div>
+    <div class="qr-scanner-container">
+      <div class="qr-video-wrapper">
+        <video id="qr-video" autoplay playsinline></video>
+        <div class="qr-viewfinder">
+          <div class="qr-corner tl"></div>
+          <div class="qr-corner tr"></div>
+          <div class="qr-corner bl"></div>
+          <div class="qr-corner br"></div>
+          <div class="qr-scan-line"></div>
+        </div>
+      </div>
+      <p class="qr-status" id="qr-status">Inquadra il QR code ricevuto via email</p>
     </div>
   </div>
 
