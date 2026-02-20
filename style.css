@@ -854,3 +854,128 @@ body {
 .empty-icon {
   font-size: 3rem;
 }
+
+/* === QR BUTTON === */
+.btn-qr {
+  background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
+  border: 1px solid #9333ea !important;
+}
+
+.btn-qr:hover {
+  background: linear-gradient(135deg, #6d28d9, #9333ea) !important;
+}
+
+/* === QR SCANNER === */
+.qr-scanner-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 24px;
+}
+
+.qr-video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+}
+
+.qr-video-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qr-viewfinder {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  width: 70%;
+  height: 70%;
+  pointer-events: none;
+}
+
+.qr-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-color: #16A34A;
+  border-style: solid;
+  border-width: 0;
+}
+
+.qr-corner.tl {
+  top: 0;
+  left: 0;
+  border-top-width: 4px;
+  border-left-width: 4px;
+  border-radius: 8px 0 0 0;
+}
+
+.qr-corner.tr {
+  top: 0;
+  right: 0;
+  border-top-width: 4px;
+  border-right-width: 4px;
+  border-radius: 0 8px 0 0;
+}
+
+.qr-corner.bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-radius: 0 0 0 8px;
+}
+
+.qr-corner.br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 4px;
+  border-right-width: 4px;
+  border-radius: 0 0 8px 0;
+}
+
+.qr-scan-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #16A34A, transparent);
+  animation: qrScan 2s ease-in-out infinite;
+}
+
+@keyframes qrScan {
+
+  0%,
+  100% {
+    top: 0;
+  }
+
+  50% {
+    top: 100%;
+  }
+}
+
+.qr-status {
+  font-size: 1.1rem;
+  color: #aaa;
+  text-align: center;
+}
+
+.qr-status.qr-success {
+  color: #16A34A;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.qr-status.qr-error {
+  color: #ef4444;
+}
