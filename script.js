@@ -282,12 +282,18 @@ async function submitCheckIn() {
 
   const btn = document.getElementById('btn-submit-checkin');
   btn.disabled = true;
-  btn.textContent = '⏳ Registrazione...';
+  btn.textContent = '⏳ Generazione PDF firmato...';
 
   try {
+    // Generate the signed PDF with embedded signature
+    const signedPdfBase64 = await generateSignedPDF(firma);
+
+    btn.textContent = '⏳ Registrazione...';
+
     const result = await apiPost('/visit', {
       ...pendingCheckInData,
       firma,
+      firma_pdf: signedPdfBase64,
       privacy_accettata: true
     });
 
@@ -306,6 +312,56 @@ async function submitCheckIn() {
     btn.disabled = false;
     btn.textContent = '✅ CONFERMA E REGISTRA';
   }
+}
+
+// Generate a signed PDF by embedding the signature onto the informativa.pdf
+async function generateSignedPDF(signatureDataUrl) {
+  const { PDFDocument } = PDFLib;
+
+  // Fetch the original PDF
+  const pdfBytes = await fetch('informativa.pdf').then(r => r.arrayBuffer());
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+
+  // Embed the signature image
+  const sigImageBytes = await fetch(signatureDataUrl).then(r => r.arrayBuffer());
+  const sigImage = await pdfDoc.embedPng(sigImageBytes);
+
+  // Get the last page
+  const pages = pdfDoc.getPages();
+  const lastPage = pages[pages.length - 1];
+  const { width, height } = lastPage.getSize();
+
+  // Position signature at the same spot as the overlay canvas (75-94% from top)
+  // In PDF coordinates, Y=0 is at the BOTTOM, so we need to invert
+  const sigTop = height * 0.75;     // 75% from top = 25% from bottom
+  const sigBottom = height * 0.94;  // 94% from top = 6% from bottom
+  const sigY = height - sigBottom;  // Y position (from bottom)
+  const sigH = sigBottom - sigTop;  // Height of signature area
+  const sigX = width * 0.05;        // 5% from left
+  const sigW = width * 0.90;        // 90% width
+
+  // Draw signature on last page, preserving aspect ratio
+  const sigAspect = sigImage.width / sigImage.height;
+  let drawW = sigW;
+  let drawH = drawW / sigAspect;
+  if (drawH > sigH) {
+    drawH = sigH;
+    drawW = drawH * sigAspect;
+  }
+  const drawX = sigX + (sigW - drawW) / 2;
+  const drawY = sigY + (sigH - drawH) / 2;
+
+  lastPage.drawImage(sigImage, {
+    x: drawX,
+    y: drawY,
+    width: drawW,
+    height: drawH,
+  });
+
+  // Save and return as base64
+  const signedPdfBytes = await pdfDoc.save();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(signedPdfBytes)));
+  return 'data:application/pdf;base64,' + base64;
 }
 
 function resetCheckInForm() {
