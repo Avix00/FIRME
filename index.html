@@ -110,12 +110,20 @@
       <form id="checkin-form" onsubmit="return false;">
         <div class="form-grid">
           <div class="form-group">
-            <label for="nominativo">Nome e Cognome *</label>
-            <input type="text" id="nominativo" placeholder="Nome e Cognome" required autocomplete="off">
+            <label for="field-nome">Nome *</label>
+            <input type="text" id="field-nome" placeholder="Nome" required autocomplete="off">
           </div>
           <div class="form-group">
-            <label for="ditta">Ditta di provenienza *</label>
-            <input type="text" id="ditta" placeholder="Nome azienda" required autocomplete="off">
+            <label for="field-cognome">Cognome *</label>
+            <input type="text" id="field-cognome" placeholder="Cognome" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="ditta">Ditta di provenienza</label>
+            <div class="input-suggest-wrapper">
+              <input type="text" id="ditta" placeholder="Nome azienda" autocomplete="off"
+                oninput="onDittaInput(this.value)">
+              <div id="ditta-suggestions" class="suggestions-dropdown"></div>
+            </div>
           </div>
           <div class="form-group">
             <label for="email">Email *</label>
@@ -123,14 +131,14 @@
           </div>
           <div class="form-group">
             <label for="referente">Referente interno *</label>
-            <select id="referente" required>
+            <select id="referente" required onchange="onReferenteChange()">
               <option value="">-- Seleziona --</option>
               <!-- Populated dynamically -->
             </select>
           </div>
           <div class="form-group">
-            <label for="zona">Zona di accesso</label>
-            <input type="text" id="zona" placeholder="Zona / reparto" autocomplete="off">
+            <label for="zona">Reparto / Zona</label>
+            <input type="text" id="zona" placeholder="Auto-compilato dal referente" autocomplete="off" readonly>
           </div>
         </div>
 
@@ -169,7 +177,7 @@
     <div class="success-container">
       <div class="success-box">
         <span class="success-icon">✅</span>
-        <h2>Ingresso Registrato!</h2>
+        <h2 id="success-title">Ingresso Registrato!</h2>
         <p id="success-message"></p>
         <div class="code-display">
           <p style="color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;">Il tuo codice accesso</p>
@@ -330,6 +338,7 @@
           <h3>Gestione Referenti Interni</h3>
           <div class="referee-add-form">
             <input type="text" id="new-referee-name" placeholder="Nome referente" autocomplete="off">
+            <input type="text" id="new-referee-reparto" placeholder="Reparto" autocomplete="off">
             <input type="email" id="new-referee-email" placeholder="Email (opzionale)" autocomplete="off">
             <button class="btn btn-primary btn-sm" onclick="addReferee()">➕ Aggiungi</button>
           </div>
