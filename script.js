@@ -1048,7 +1048,91 @@ async function downloadExcel() {
   }
 }
 
-// ============================================================
+// --- Admin: Manual Entry ---
+function openManualEntry() {
+  document.getElementById('overlay-manual-entry').style.display = 'flex';
+  const select = document.getElementById('manual-referente');
+  select.innerHTML = '<option value="">-- Seleziona --</option>';
+
+  // Use the global refereesData if available, otherwise just use select options from the check-in form
+  const sourceSelect = document.getElementById('referente');
+  if (sourceSelect) {
+    Array.from(sourceSelect.options).forEach(opt => {
+      const newOpt = opt.cloneNode(true);
+      select.appendChild(newOpt);
+    });
+  }
+
+  // Default date to today
+  document.getElementById('manual-date').value = new Date().toISOString().split('T')[0];
+}
+
+function closeManualEntry() {
+  document.getElementById('overlay-manual-entry').style.display = 'none';
+  document.getElementById('manual-entry-form').reset();
+}
+
+function onManualReferenteChange() {
+  const select = document.getElementById('manual-referente');
+  const zona = document.getElementById('manual-zona');
+  const selected = select.options[select.selectedIndex];
+  zona.value = (selected && selected.dataset.reparto) ? selected.dataset.reparto : '';
+}
+
+async function submitManualEntry() {
+  const nome = document.getElementById('manual-nome').value.trim();
+  const cognome = document.getElementById('manual-cognome').value.trim();
+  const ditta = document.getElementById('manual-ditta').value.trim();
+  const email = document.getElementById('manual-email').value.trim();
+  const referente = document.getElementById('manual-referente').value;
+  const zona = document.getElementById('manual-zona').value.trim();
+  const dateStr = document.getElementById('manual-date').value;
+  const timeIn = document.getElementById('manual-time-in').value;
+  const timeOut = document.getElementById('manual-time-out').value;
+
+  if (!nome || !cognome || !email || !referente || !dateStr || !timeIn) {
+    showError('Compila tutti i campi obbligatori.');
+    return;
+  }
+
+  const ora_entrata = new Date(`${dateStr}T${timeIn}:00`).toISOString();
+  let ora_uscita = null;
+  if (timeOut) {
+    ora_uscita = new Date(`${dateStr}T${timeOut}:00`).toISOString();
+  }
+
+  const btn = document.querySelector('#manual-entry-form .btn-primary');
+  btn.disabled = true;
+  btn.textContent = '⏳ Salvataggio...';
+
+  try {
+    const result = await apiPost('/visit', {
+      nome: `${cognome} ${nome}`,
+      ditta,
+      email,
+      referente,
+      zona,
+      ora_entrata,
+      ora_uscita,
+      manual: true
+    });
+
+    if (result.success) {
+      closeManualEntry();
+      loadAdminData();
+      if (typeof loadDashboardStats === 'function') loadDashboardStats();
+    } else {
+      showError(result.message || 'Errore salvataggio manuale.');
+    }
+  } catch (err) {
+    showError('Errore: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salva Record';
+  }
+}
+
+// ===================================
 // OVERLAYS
 // ============================================================
 function showError(message) {
