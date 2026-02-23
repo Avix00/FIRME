@@ -1187,6 +1187,61 @@ body {
   }
 }
 
+/* === AUTOCOMPLETE SUGGESTIONS === */
+.input-suggest-wrapper {
+  position: relative;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.suggestion-item {
+  padding: 10px 16px;
+  color: #ddd;
+  cursor: pointer;
+  border-bottom: 1px solid #222;
+  transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: #16A34A;
+  color: #fff;
+}
+
+/* === REFEREE LIST IMPROVEMENTS === */
+.referee-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.referee-reparto {
+  color: #16A34A;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.referee-email {
+  color: #888;
+  font-size: 0.85rem;
+}
+
 /* === QR BUTTON === */
 .btn-qr {
   background: linear-gradient(135deg, #7c3aed, #a855f7) !important;
