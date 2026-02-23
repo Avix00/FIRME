@@ -119,9 +119,9 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        // POST: CHECK-IN
+        // POST: CHECK-IN / MANUAL ENTRY
         if (req.method === 'POST') {
-            const { nome, ditta, email, referente, referente_email, zona, firma, firma_pdf, privacy_accettata } = req.body;
+            const { nome, ditta, email, referente, referente_email, zona, firma, firma_pdf, privacy_accettata, manual, ora_entrata, ora_uscita } = req.body;
             if (!nome || !email) {
                 return res.status(400).json({ success: false, message: 'Nome e Email sono obbligatori' });
             }
@@ -136,33 +136,33 @@ module.exports = async function handler(req, res) {
             }
 
             let firma_url = null;
-            // Prefer signed PDF if available, fall back to signature PNG
-            if (firma_pdf) {
-                try {
-                    const base64Data = firma_pdf.replace(/^data:application\/pdf;base64,/, '');
-                    const buffer = Buffer.from(base64Data, 'base64');
-                    const fileName = `firmato_${codice}_${Date.now()}.pdf`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage.from('signatures').upload(fileName, buffer, { contentType: 'application/pdf', upsert: false });
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
-                        firma_url = urlData.publicUrl;
-                    } else {
-                        console.error('PDF upload error:', uploadError);
-                    }
-                } catch (e) { console.error('PDF upload failed:', e); }
-            }
-            // Fallback: upload just the signature image if PDF upload failed
-            if (!firma_url && firma) {
-                try {
-                    const base64Data = firma.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-                    const buffer = Buffer.from(base64Data, 'base64');
-                    const fileName = `firma_${codice}_${Date.now()}.png`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage.from('signatures').upload(fileName, buffer, { contentType: 'image/png', upsert: false });
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
-                        firma_url = urlData.publicUrl;
-                    }
-                } catch (e) { console.error('Signature upload failed:', e); }
+            if (!manual) {
+                // Prefer signed PDF if available, fall back to signature PNG
+                if (firma_pdf) {
+                    try {
+                        const base64Data = firma_pdf.replace(/^data:application\/pdf;base64,/, '');
+                        const buffer = Buffer.from(base64Data, 'base64');
+                        const fileName = `firmato_${codice}_${Date.now()}.pdf`;
+                        const { data: uploadData, error: uploadError } = await supabase.storage.from('signatures').upload(fileName, buffer, { contentType: 'application/pdf', upsert: false });
+                        if (!uploadError) {
+                            const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
+                            firma_url = urlData.publicUrl;
+                        }
+                    } catch (e) { console.error('PDF upload failed:', e); }
+                }
+                // Fallback: upload just the signature image if PDF upload failed
+                if (!firma_url && firma) {
+                    try {
+                        const base64Data = firma.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+                        const buffer = Buffer.from(base64Data, 'base64');
+                        const fileName = `firma_${codice}_${Date.now()}.png`;
+                        const { data: uploadData, error: uploadError } = await supabase.storage.from('signatures').upload(fileName, buffer, { contentType: 'image/png', upsert: false });
+                        if (!uploadError) {
+                            const { data: urlData } = supabase.storage.from('signatures').getPublicUrl(fileName);
+                            firma_url = urlData.publicUrl;
+                        }
+                    } catch (e) { console.error('Signature upload failed:', e); }
+                }
             }
 
             const now = new Date().toISOString();
@@ -171,17 +171,20 @@ module.exports = async function handler(req, res) {
                 referente: referente || null,
                 zona: zona || null,
                 codice_univoco: codice,
-                ora_entrata: now,
+                ora_entrata: manual ? (ora_entrata || now) : now,
+                ora_uscita: manual ? (ora_uscita || null) : null,
                 firma_url,
-                privacy_accettata: privacy_accettata || false
+                privacy_accettata: manual ? true : (privacy_accettata || false)
             }).select().single();
 
             if (error) throw error;
 
-            try { await sendEntryEmail(email, nome, codice, now); } catch (e) { console.error('Email failed:', e); }
-            try { await sendReferenteEmail(referente_email, nome, ditta, zona, now); } catch (e) { console.error('Referente email failed:', e); }
+            if (!manual) {
+                try { await sendEntryEmail(email, nome, codice, now); } catch (e) { console.error('Email failed:', e); }
+                try { await sendReferenteEmail(referente_email, nome, ditta, zona, now); } catch (e) { console.error('Referente email failed:', e); }
+            }
 
-            return res.status(201).json({ success: true, message: 'Ingresso registrato', codice, visitor: data });
+            return res.status(201).json({ success: true, message: manual ? 'Record manuale inserito' : 'Ingresso registrato', codice, visitor: data });
         }
 
         // PUT: CHECK-OUT
