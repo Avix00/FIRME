@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
         if (req.method === 'GET') {
             const { data, error } = await supabase
                 .from('referees')
-                .select('id, nome, email')
+                .select('id, nome, email, reparto')
                 .eq('active', true)
                 .order('nome');
 
@@ -34,12 +34,12 @@ module.exports = async function handler(req, res) {
 
         // POST: Add new referee
         if (req.method === 'POST') {
-            const { nome, email } = req.body;
+            const { nome, email, reparto } = req.body;
             if (!nome) return res.status(400).json({ success: false, message: 'Nome obbligatorio' });
 
             const { data, error } = await supabase
                 .from('referees')
-                .insert({ nome, email: email || null })
+                .insert({ nome, email: email || null, reparto: reparto || null })
                 .select()
                 .single();
 
