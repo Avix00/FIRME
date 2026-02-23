@@ -177,6 +177,8 @@ async function apiDelete(endpoint, data) {
 // ============================================================
 // LOAD REFEREES DROPDOWN
 // ============================================================
+let refereesData = []; // Store referee data for reparto lookup
+
 async function loadReferees() {
   const select = document.getElementById('referente');
   if (!select) return;
@@ -184,17 +186,30 @@ async function loadReferees() {
   try {
     const result = await apiGet('/referees');
     if (result.success && result.referees) {
-      // Keep the first "-- Seleziona --" option
+      refereesData = result.referees;
       select.innerHTML = '<option value="">-- Seleziona --</option>';
       result.referees.forEach(r => {
         const opt = document.createElement('option');
         opt.value = r.nome;
-        opt.textContent = r.nome;
+        opt.textContent = r.nome + (r.reparto ? ` (${r.reparto})` : '');
+        opt.dataset.reparto = r.reparto || '';
+        opt.dataset.email = r.email || '';
         select.appendChild(opt);
       });
     }
   } catch (err) {
     console.error('Failed to load referees:', err);
+  }
+}
+
+function onReferenteChange() {
+  const select = document.getElementById('referente');
+  const zona = document.getElementById('zona');
+  const selected = select.options[select.selectedIndex];
+  if (selected && selected.dataset.reparto) {
+    zona.value = selected.dataset.reparto;
+  } else {
+    zona.value = '';
   }
 }
 
@@ -267,18 +282,24 @@ function getSignatureData() {
 let pendingCheckInData = {};
 
 function goToPrivacyStep() {
-  const nominativo = document.getElementById('nominativo').value.trim();
+  const nome = document.getElementById('field-nome').value.trim();
+  const cognome = document.getElementById('field-cognome').value.trim();
   const ditta = document.getElementById('ditta').value.trim();
   const email = document.getElementById('email').value.trim();
   const referente = document.getElementById('referente').value;
   const zona = document.getElementById('zona').value.trim();
 
-  if (!nominativo) { showError('Inserisci il nome e cognome.'); return; }
-  if (!ditta) { showError('Inserisci la ditta.'); return; }
+  if (!nome) { showError('Inserisci il nome.'); return; }
+  if (!cognome) { showError('Inserisci il cognome.'); return; }
   if (!email) { showError('Inserisci l\'email.'); return; }
   if (!referente) { showError('Seleziona il referente interno.'); return; }
 
-  pendingCheckInData = { nome: nominativo, ditta, email, referente, zona };
+  // Get referente email for notification
+  const select = document.getElementById('referente');
+  const selectedOpt = select.options[select.selectedIndex];
+  const referente_email = selectedOpt ? selectedOpt.dataset.email : '';
+
+  pendingCheckInData = { nome: `${cognome} ${nome}`, ditta: ditta || '', email, referente, referente_email, zona };
   showScreen('screen-privacy');
 }
 
@@ -304,6 +325,7 @@ async function submitCheckIn() {
     });
 
     if (result.success) {
+      document.getElementById('success-title').textContent = 'Ingresso Registrato!';
       document.getElementById('success-message').textContent =
         `Benvenuto ${pendingCheckInData.nome}! Una email di conferma è stata inviata a ${pendingCheckInData.email}.`;
       document.getElementById('success-code').textContent = result.codice;
@@ -371,16 +393,49 @@ async function generateSignedPDF(signatureDataUrl) {
 }
 
 function resetCheckInForm() {
-  document.getElementById('nominativo').value = '';
+  document.getElementById('field-nome').value = '';
+  document.getElementById('field-cognome').value = '';
   document.getElementById('ditta').value = '';
   document.getElementById('email').value = '';
   document.getElementById('referente').value = '';
   document.getElementById('zona').value = '';
+  document.getElementById('ditta-suggestions').innerHTML = '';
   clearSignature();
   pendingCheckInData = {};
   pdfRendered = false;
   const pdfContainer = document.getElementById('pdf-pages-container');
   if (pdfContainer) pdfContainer.innerHTML = '';
+}
+
+// --- Ditta Autocomplete ---
+let dittaTimeout = null;
+function onDittaInput(val) {
+  clearTimeout(dittaTimeout);
+  const dropdown = document.getElementById('ditta-suggestions');
+  if (val.length < 3) {
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  dittaTimeout = setTimeout(async () => {
+    try {
+      const result = await apiGet('/suggest-ditta', { q: val });
+      if (result.success && result.suggestions.length > 0) {
+        dropdown.innerHTML = result.suggestions.map(s =>
+          `<div class="suggestion-item" onclick="selectDittaSuggestion('${escapeHtml(s)}')">${escapeHtml(s)}</div>`
+        ).join('');
+      } else {
+        dropdown.innerHTML = '';
+      }
+    } catch (err) {
+      console.error('Ditta suggest error:', err);
+    }
+  }, 300);
+}
+
+function selectDittaSuggestion(val) {
+  document.getElementById('ditta').value = val;
+  document.getElementById('ditta-suggestions').innerHTML = '';
 }
 
 // ============================================================
@@ -637,6 +692,7 @@ async function okConfirm() {
   try {
     const result = await apiPut('/visit', { id: visitor.id });
     if (result.success) {
+      document.getElementById('success-title').textContent = 'Uscita Registrata!';
       document.getElementById('success-message').textContent =
         `Uscita registrata per ${visitor.nome}. Email di conferma inviata.`;
       document.getElementById('success-code').textContent = visitor.codice_univoco;
@@ -894,11 +950,15 @@ async function loadAdminReferees() {
       result.referees.forEach(r => {
         const item = document.createElement('div');
         item.className = 'referee-item';
-        item.innerHTML = `
+        const infoHtml = `
           <div class="referee-info">
             <strong>${escapeHtml(r.nome)}</strong>
-            ${r.email ? `<span style="color:#888;font-size:0.85rem;">${escapeHtml(r.email)}</span>` : ''}
+            ${r.reparto ? `<span class="referee-reparto">${escapeHtml(r.reparto)}</span>` : ''}
+            ${r.email ? `<span class="referee-email">${escapeHtml(r.email)}</span>` : ''}
           </div>
+        `;
+        item.innerHTML = `
+          ${infoHtml}
           <button class="btn btn-outline btn-sm btn-danger" onclick="removeReferee('${r.id}')">❌ Rimuovi</button>
         `;
         listEl.appendChild(item);
@@ -911,13 +971,15 @@ async function loadAdminReferees() {
 
 async function addReferee() {
   const nome = document.getElementById('new-referee-name').value.trim();
+  const reparto = document.getElementById('new-referee-reparto').value.trim();
   const email = document.getElementById('new-referee-email').value.trim();
   if (!nome) { showError('Inserisci il nome del referente.'); return; }
 
   try {
-    const result = await apiPost('/referees', { nome, email });
+    const result = await apiPost('/referees', { nome, reparto, email });
     if (result.success) {
       document.getElementById('new-referee-name').value = '';
+      document.getElementById('new-referee-reparto').value = '';
       document.getElementById('new-referee-email').value = '';
       loadAdminReferees();
     } else {
