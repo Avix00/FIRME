@@ -301,7 +301,11 @@
             <input type="date" id="admin-date" onchange="loadAdminData()">
             <button class="btn btn-outline btn-sm" onclick="setAdminDateToday()">Oggi</button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="downloadExcel()">📥 Scarica Excel</button>
+          <div class="admin-toolbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="openManualEntry()" style="margin-right: 8px;">➕
+              Inserisci</button>
+            <button class="btn btn-primary btn-sm" onclick="downloadExcel()">📥 Scarica Excel</button>
+          </div>
         </div>
         <div class="admin-table-wrapper">
           <table class="admin-table" id="admin-table">
@@ -394,6 +398,62 @@
       <div class="screensaver-clock" id="screensaver-clock">00:00</div>
       <div class="screensaver-date" id="screensaver-date"></div>
       <p class="screensaver-tap">Tocca per continuare</p>
+    </div>
+  </div>
+
+  <!-- ===================== ADMIN MANUAL ENTRY OVERLAY ===================== -->
+  <div id="overlay-manual-entry" class="overlay" style="display:none;">
+    <div class="overlay-content manual-entry-content">
+      <div class="modal-header">
+        <h2>➕ Registrazione Manuale</h2>
+        <button class="btn-close" onclick="closeManualEntry()">×</button>
+      </div>
+      <form id="manual-entry-form" onsubmit="submitManualEntry(); return false;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="manual-nome">Nome *</label>
+            <input type="text" id="manual-nome" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="manual-cognome">Cognome *</label>
+            <input type="text" id="manual-cognome" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="manual-ditta">Ditta</label>
+            <input type="text" id="manual-ditta" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="manual-email">Email *</label>
+            <input type="email" id="manual-email" required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="manual-referente">Referente interno *</label>
+            <select id="manual-referente" required onchange="onManualReferenteChange()">
+              <option value="">-- Seleziona --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="manual-zona">Reparto / Zona</label>
+            <input type="text" id="manual-zona" readonly>
+          </div>
+          <div class="form-group">
+            <label for="manual-date">Data *</label>
+            <input type="date" id="manual-date" required>
+          </div>
+          <div class="form-group">
+            <label for="manual-time-in">Ora Entrata *</label>
+            <input type="time" id="manual-time-in" required>
+          </div>
+          <div class="form-group">
+            <label for="manual-time-out">Ora Uscita</label>
+            <input type="time" id="manual-time-out">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeManualEntry()">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva Record</button>
+        </div>
+      </form>
     </div>
   </div>
 
