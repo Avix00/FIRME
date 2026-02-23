@@ -20,6 +20,32 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+async function sendReferenteEmail(to, visitorName, ditta, zona, oraEntrata) {
+    if (!to) return;
+    const timeStr = new Date(oraEntrata).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+    await transporter.sendMail({
+        from: '"ArTen Registro Visitatori" <service@arten.it>',
+        to,
+        subject: `🔔 Visitatore in arrivo: ${visitorName}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:500px;border:1px solid #eee;border-radius:12px;overflow:hidden;">
+          <div style="background:#111;color:#fff;padding:20px;text-align:center;">
+            <h2 style="margin:0;font-size:18px;">Notifica Ingresso</h2>
+          </div>
+          <div style="padding:20px;">
+            <p>Gentile Collega,</p>
+            <p>Ti informiamo che un visitatore è appena arrivato per incontrarti:</p>
+            <div style="background:#f9f9f9;padding:15px;border-radius:8px;line-height:1.6;">
+              <strong>Visitatore:</strong> ${visitorName}<br>
+              <strong>Ditta:</strong> ${ditta || '-'}<br>
+              <strong>Reparto:</strong> ${zona || '-'}<br>
+              <strong>Ora:</strong> ${timeStr}
+            </div>
+            <p style="margin-top:20px;font-size:12px;color:#888;">ArTen S.r.l. — Registro Visitatori Digitale</p>
+          </div>
+        </div>`
+    });
+}
+
 async function sendEntryEmail(to, nome, codice, oraEntrata) {
     const timeStr = new Date(oraEntrata).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
     const dateStr = new Date(oraEntrata).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
@@ -51,13 +77,14 @@ async function sendEntryEmail(to, nome, codice, oraEntrata) {
     });
 }
 
-async function sendExitEmail(to, nome, codice, oraUscita) {
+async function sendExitEmail(to, nome, codice, oraUscita, attachments = []) {
     const timeStr = new Date(oraUscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
     const dateStr = new Date(oraUscita).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' });
     await transporter.sendMail({
         from: '"ArTen Registro Visitatori" <service@arten.it>',
         to,
         subject: `Conferma Uscita - ${codice}`,
+        attachments,
         html: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
           <div style="background:#111;color:#fff;padding:24px;border-radius:12px;text-align:center;">
             <img src="https://firme-eight.vercel.app/image-Photoroom.png" alt="ArTen" style="width:120px;height:auto;">
@@ -67,7 +94,8 @@ async function sendExitEmail(to, nome, codice, oraUscita) {
             <p>Gentile <strong>${nome}</strong>,</p>
             <p>La sua uscita è stata registrata con successo.</p>
             <p><strong>Data:</strong> ${dateStr}<br><strong>Ora uscita:</strong> ${timeStr}</p>
-            <p>Grazie per la visita. A presto!</p>
+            <p>Grazie per la visita. In allegato trova copia del documento firmato al check-in.</p>
+            <p>A presto!</p>
           </div>
           <div style="border-top:1px solid #eee;padding-top:16px;color:#999;font-size:11px;text-align:center;">ArTen S.r.l. — Registro Visitatori Digitale</div>
         </div>`
@@ -93,9 +121,9 @@ module.exports = async function handler(req, res) {
     try {
         // POST: CHECK-IN
         if (req.method === 'POST') {
-            const { nome, ditta, email, referente, zona, firma, firma_pdf, privacy_accettata } = req.body;
-            if (!nome || !ditta || !email) {
-                return res.status(400).json({ success: false, message: 'Nome, Ditta e Email sono obbligatori' });
+            const { nome, ditta, email, referente, referente_email, zona, firma, firma_pdf, privacy_accettata } = req.body;
+            if (!nome || !email) {
+                return res.status(400).json({ success: false, message: 'Nome e Email sono obbligatori' });
             }
 
             let codice;
@@ -151,6 +179,7 @@ module.exports = async function handler(req, res) {
             if (error) throw error;
 
             try { await sendEntryEmail(email, nome, codice, now); } catch (e) { console.error('Email failed:', e); }
+            try { await sendReferenteEmail(referente_email, nome, ditta, zona, now); } catch (e) { console.error('Referente email failed:', e); }
 
             return res.status(201).json({ success: true, message: 'Ingresso registrato', codice, visitor: data });
         }
@@ -165,7 +194,21 @@ module.exports = async function handler(req, res) {
             if (error) throw error;
             if (!data) return res.status(404).json({ success: false, message: 'Visitatore non trovato o già uscito' });
 
-            try { await sendExitEmail(data.email, data.nome, data.codice_univoco, now); } catch (e) { console.error('Exit email failed:', e); }
+            const attachments = [];
+            if (data.firma_url && data.firma_url.endsWith('.pdf')) {
+                try {
+                    const pdfRes = await fetch(data.firma_url);
+                    if (pdfRes.ok) {
+                        const pdfBuffer = Buffer.from(await pdfRes.arrayBuffer());
+                        attachments.push({
+                            filename: `informativa_firmata_${data.codice_univoco}.pdf`,
+                            content: pdfBuffer
+                        });
+                    }
+                } catch (e) { console.error('Failed to attach PDF:', e); }
+            }
+
+            try { await sendExitEmail(data.email, data.nome, data.codice_univoco, now, attachments); } catch (e) { console.error('Exit email failed:', e); }
 
             return res.status(200).json({ success: true, message: 'Uscita registrata', visitor: data });
         }
