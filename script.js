@@ -754,7 +754,7 @@ async function loadDashboardStats() {
     const result = await apiGet('/visit', { date: today });
     if (!result.success) return;
 
-    const visitors = result.data || [];
+    const visitors = result.visitors || [];
     const entries = visitors.length;
     const exits = visitors.filter(v => v.ora_uscita).length;
     const present = entries - exits;
