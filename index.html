@@ -118,7 +118,7 @@
             <input type="text" id="field-cognome" placeholder="Cognome" required autocomplete="off">
           </div>
           <div class="form-group">
-            <label for="ditta">Ditta di provenienza</label>
+            <label for="ditta">Azienda</label>
             <div class="input-suggest-wrapper">
               <input type="text" id="ditta" placeholder="Nome azienda" autocomplete="off"
                 oninput="onDittaInput(this.value)">
@@ -181,7 +181,7 @@
         <p id="success-message"></p>
         <div class="code-display">
           <p style="color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:2px;">Il tuo codice accesso</p>
-          <p id="success-code" class="generated-code"></p>
+          <p id="success-code" class="generated-code" spellcheck="false"></p>
           <p style="color:#666;font-size:0.85rem;">Conserva questo codice per accessi futuri</p>
         </div>
         <button class="btn btn-primary btn-lg" onclick="showScreen('screen-home')">CHIUDI</button>
@@ -320,6 +320,7 @@
                 <th>Zona</th>
                 <th>Codice</th>
                 <th>Firma</th>
+                <th>Azioni</th>
               </tr>
             </thead>
             <tbody id="admin-table-body">
