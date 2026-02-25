@@ -913,6 +913,10 @@ async function loadAdminData() {
           ? `<a href="${escapeHtml(entry.firma_url)}" target="_blank">Vedi</a>`
           : '—';
 
+        const azioni = isStillInside
+          ? `<button class="btn btn-outline btn-sm" onclick="adminCheckout('${entry.id}')" style="white-space:nowrap;">🚪 Uscita</button>`
+          : '';
+
         tr.innerHTML = `
           <td>${formatTime(entry.ora_entrata)}</td>
           <td>${uscita}</td>
@@ -923,6 +927,7 @@ async function loadAdminData() {
           <td>${escapeHtml(entry.zona || '')}</td>
           <td><code>${escapeHtml(entry.codice_univoco)}</code></td>
           <td>${firma}</td>
+          <td>${azioni}</td>
         `;
         tableBody.appendChild(tr);
       });
@@ -931,6 +936,21 @@ async function loadAdminData() {
     }
   } catch (err) {
     loadingEl.style.display = 'none';
+    showError('Errore: ' + err.message);
+  }
+}
+
+// --- Admin: Force Checkout ---
+async function adminCheckout(visitorId) {
+  try {
+    const result = await apiPut('/visit', { id: visitorId });
+    if (result.success) {
+      loadAdminData();
+      if (typeof loadDashboardStats === 'function') loadDashboardStats();
+    } else {
+      showError(result.message || 'Errore registrazione uscita.');
+    }
+  } catch (err) {
     showError('Errore: ' + err.message);
   }
 }
