@@ -285,7 +285,9 @@ function goToPrivacyStep() {
   const nome = document.getElementById('field-nome').value.trim();
   const cognome = document.getElementById('field-cognome').value.trim();
   const ditta = document.getElementById('ditta').value.trim();
-  const email = document.getElementById('email').value.trim();
+  let email = document.getElementById('email').value.trim();
+  // Clean trailing spaces or punctuation often added by mobile keyboards
+  email = email.replace(/[\s\.]+$/, '');
   const referente = document.getElementById('referente').value;
   const zona = document.getElementById('zona').value.trim();
 
