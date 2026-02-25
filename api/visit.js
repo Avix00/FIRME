@@ -121,10 +121,11 @@ module.exports = async function handler(req, res) {
     try {
         // POST: CHECK-IN / MANUAL ENTRY
         if (req.method === 'POST') {
-            const { nome, ditta, email, referente, referente_email, zona, firma, firma_pdf, privacy_accettata, manual, ora_entrata, ora_uscita } = req.body;
+            let { nome, ditta, email, referente, referente_email, zona, firma, firma_pdf, privacy_accettata, manual, ora_entrata, ora_uscita } = req.body;
             if (!nome || !email) {
                 return res.status(400).json({ success: false, message: 'Nome e Email sono obbligatori' });
             }
+            email = email.trim().replace(/[\s\.]+$/, '');
 
             let codice;
             let tries = 0;
