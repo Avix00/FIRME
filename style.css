@@ -288,6 +288,11 @@ body {
   border-color: #16A34A;
 }
 
+.form-group input,
+.form-group select {
+  width: 100%;
+}
+
 .form-group select {
   cursor: pointer;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -295,6 +300,41 @@ body {
   background-repeat: no-repeat;
   background-size: 20px;
   padding-right: 40px;
+}
+
+/* Autocomplete wrapper */
+.input-suggest-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #1A1A1A;
+  border-radius: 0 0 12px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.suggestions-dropdown:empty {
+  display: none;
+}
+
+.suggestion-item {
+  padding: 12px 16px;
+  color: #F0F0F0;
+  cursor: pointer;
+  border-top: 1px solid #2A2A2A;
+  font-size: 0.95rem;
+}
+
+.suggestion-item:hover {
+  background: #222;
+  color: #16A34A;
 }
 
 .form-actions {
